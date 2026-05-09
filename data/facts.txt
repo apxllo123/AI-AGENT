@@ -1,0 +1,8 @@
+facts.txt
+=========
+
+hello world
+ai agent is free and unlimited
+chatbot can remember things
+files are stored in facts.txt and other .txt files
+ai agent can search your files
