@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (form && input) {
-    form.addEventListener("submit", (e) => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       const text = input.value.trim();
@@ -33,9 +33,29 @@ document.addEventListener("DOMContentLoaded", () => {
       addMessage(text, "sent");
       input.value = "";
 
-      setTimeout(() => {
-        addMessage("Bot reply goes here.", "received");
-      }, 300);
+      try {
+        const response = await fetch("/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: text,
+            userId: "default",
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          addMessage(data.error || "Something went wrong.", "received");
+          return;
+        }
+
+        addMessage(data.reply, "received");
+      } catch (error) {
+        addMessage("Server error. Please try again.", "received");
+      }
     });
   }
 });
