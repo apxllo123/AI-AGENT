@@ -1,9 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const chatButton = document.querySelector("#home-cta a");
+  const chatButton = document.getElementById("home-cta__button");
   if (!chatButton) return;
 
   chatButton.addEventListener("click", (event) => {
     event.preventDefault();
-    console.log("Open chat here");
+    console.log("Start Chat clicked");
   });
 });
