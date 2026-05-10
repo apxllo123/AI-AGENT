@@ -1,4 +1,3 @@
-# server/server.py
 import os
 import sys
 import json
@@ -58,7 +57,7 @@ def chat():
     if not model_loaded:
         load_model()
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     prompt = data.get("prompt", "").strip()
     max_new_tokens = data.get("max_new_tokens", 40)
 
@@ -90,13 +89,5 @@ def info():
 
 if __name__ == "__main__":
     load_model()
-    app.run(
-        host="0.0.0.0",
-        port=int(os.environ.get("PORT", 5000)),
-        debug=True,
-    )
-    import os
-
-if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=False)
