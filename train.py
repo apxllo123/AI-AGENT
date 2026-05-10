@@ -23,3 +23,5 @@ with open("artifacts/bpe.pkl", "wb") as f:
 
 with open("artifacts/model.pkl", "wb") as f:
     pickle.dump(model, f)
+
+print("saved artifacts to artifacts/")
