@@ -1,0 +1,48 @@
+@media (max-width: 1024px) {
+  #site-header__nav-list-01,
+  #site-header__button-list {
+    display: none;
+  }
+
+  #site-menu,
+  #site-header__button-menu {
+    display: block;
+  }
+}
+
+@media (max-width: 768px) {
+  #home-hero {
+    padding-top: 56px;
+  }
+
+  #home-hero__title {
+    max-width: 100%;
+  }
+
+  #home-cta {
+    padding-bottom: 64px;
+  }
+
+  .logo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .o-container {
+    width: min(100% - 20px, var(--max));
+  }
+
+  #home-hero__new-badge {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  #home-cta__title {
+    font-size: 26px;
+  }
+
+  .logo-grid {
+    grid-template-columns: 1fr;
+  }
+}
