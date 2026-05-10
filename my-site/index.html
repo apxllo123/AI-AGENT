@@ -4,61 +4,68 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI-AGENT</title>
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: #f5f5f5;
-      color: #111;
-      font-family: Arial, sans-serif;
-    }
-
-    #canvas {
-      display: none;
-    }
-
-    #ui {
-      position: relative;
-      z-index: 9999;
-      width: 100%;
-      min-height: 100vh;
-      padding: 24px;
-      box-sizing: border-box;
-      background: transparent;
-    }
-
-    .o-container {
-      width: min(100%, 1100px);
-      margin: 0 auto;
-    }
-
-    .panel {
-      background: white;
-      color: black;
-      border-radius: 12px;
-      padding: 24px;
-      margin-top: 20px;
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
-    }
-
-    h1, h2, p {
-      margin: 0 0 12px;
-    }
-  </style>
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/header.css" />
+  <link rel="stylesheet" href="/css/hero.css" />
+  <link rel="stylesheet" href="/css/cta.css" />
+  <link rel="stylesheet" href="/css/responsive.css" />
 </head>
 <body>
   <canvas id="canvas"></canvas>
 
   <div id="ui">
-    <div class="o-container">
-      <h1>AI-AGENT</h1>
-      <p>Your AI assistant is live.</p>
+    <header id="site-header">
+      <div id="site-header__container">
+        <a id="site-header__logo" href="/">
+          <span class="o-icon">◆</span>
+          <span>AI-AGENT</span>
+        </a>
 
-      <div class="panel">
-        <h2>Chat</h2>
-        <p>If you can see this text, the page is working.</p>
+        <nav id="site-header__nav">
+          <ul id="site-header__nav-list-01">
+            <li class="site-header__nav-item"><a href="#home-hero">Home</a></li>
+            <li class="site-header__nav-item"><a href="#home-cta">CTA</a></li>
+          </ul>
+        </nav>
       </div>
-    </div>
+    </header>
+
+    <main>
+      <section id="home-hero">
+        <div id="home-hero__wrapper" class="o-container">
+          <div id="home-hero__top">
+            <a id="home-hero__new-badge" href="#">
+              <span id="home-hero__new-badge-tag">New</span>
+              <span>Introducing AI-AGENT</span>
+            </a>
+
+            <h1 id="home-hero__title">AI-AGENT Your AI assistant is live.</h1>
+          </div>
+
+          <figure id="home-hero__media">
+            <img src="https://via.placeholder.com/1200x700" alt="Preview" />
+          </figure>
+        </div>
+      </section>
+
+      <section id="home-cta" class="o-container">
+        <div id="home-cta__copy">
+          <p id="home-cta__caption">Chat</p>
+          <h2 id="home-cta__title">If you can see this text, the page is working.</h2>
+        </div>
+
+        <a id="home-cta__button" href="#">Start Chat</a>
+
+        <div class="logo-grid-wrapper">
+          <div class="logo-grid">
+            <div class="logo-grid-item"><span class="o-icon">A</span></div>
+            <div class="logo-grid-item"><span class="o-icon">I</span></div>
+            <div class="logo-grid-item"><span class="o-icon">-</span></div>
+            <div class="logo-grid-item"><span class="o-icon">G</span></div>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 </body>
 </html>
