@@ -18,6 +18,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -32,3 +33,4 @@ jobs:
         with:
           name: model-artifacts
           path: artifacts/
+          if-no-files-found: error
