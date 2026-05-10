@@ -25,6 +25,7 @@
           <ul id="site-header__nav-list-01">
             <li class="site-header__nav-item"><a href="#home-hero">Home</a></li>
             <li class="site-header__nav-item"><a href="#home-cta">CTA</a></li>
+            <li class="site-header__nav-item"><a href="#chat-panel">Chat</a></li>
           </ul>
         </nav>
       </div>
@@ -63,6 +64,17 @@
             <div class="logo-grid-item"><span class="o-icon">-</span></div>
             <div class="logo-grid-item"><span class="o-icon">G</span></div>
           </div>
+        </div>
+      </section>
+
+      <section id="chat-panel" class="o-container" style="display:none;">
+        <div id="chat-shell">
+          <div id="chat-messages" aria-live="polite"></div>
+
+          <form id="chat-form">
+            <input id="chat-input" type="text" placeholder="Type a message..." autocomplete="off" />
+            <button type="submit">Send</button>
+          </form>
         </div>
       </section>
     </main>
