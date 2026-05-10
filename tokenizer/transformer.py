@@ -1,6 +1,4 @@
-# tokenizer/transformer.py
-import numpy as np
-from collections import defaultdict, Counter
+from collections import defaultdict
 
 
 class SimpleBPE:
@@ -8,29 +6,32 @@ class SimpleBPE:
         self.vocab = {}
         self.vocab_r = {}
         self.merges = []
+        self.unk_token = "<unk>"
+        self.bos_token = "<bos>"
+        self.eos_token = "<eos>"
 
     def get_stats(self, word_freqs):
         pairs = defaultdict(int)
         for word, freq in word_freqs.items():
             symbols = list(word)
             for i in range(len(symbols) - 1):
-                pairs[(symbols[i], symbols[i+1])] += freq
+                pairs[(symbols[i], symbols[i + 1])] += freq
         return pairs
 
     def merge_vocab(self, pair, word_freqs):
         new_vocab = {}
-        replacement = ''.join(pair)
+        replacement = "".join(pair)
         for word, freq in word_freqs.items():
             new_word = []
             i = 0
             while i < len(word):
-                if i < len(word) - 1 and word[i] == pair[0] and word[i+1] == pair[1]:
+                if i < len(word) - 1 and word[i] == pair[0] and word[i + 1] == pair[1]:
                     new_word.append(replacement)
                     i += 2
                 else:
                     new_word.append(word[i])
                     i += 1
-            new_vocab[''.join(new_word)] = freq
+            new_vocab["".join(new_word)] = freq
         return new_vocab
 
     def tokenize_word(self, word):
@@ -39,7 +40,7 @@ class SimpleBPE:
             new_pieces = []
             i = 0
             while i < len(pieces):
-                if i < len(pieces) - 1 and pieces[i] == a and pieces[i+1] == b:
+                if i < len(pieces) - 1 and pieces[i] == a and pieces[i + 1] == b:
                     new_pieces.append(a + b)
                     i += 2
                 else:
@@ -54,37 +55,52 @@ class SimpleBPE:
         for word in words:
             word_freqs[word] = word_freqs.get(word, 0) + 1
 
-        for i in range(num_merges):
+        for _ in range(num_merges):
             pairs = self.get_stats(word_freqs)
             if not pairs:
                 break
-
             best_pair = max(pairs, key=pairs.get)
             self.merges.append(best_pair)
             word_freqs = self.merge_vocab(best_pair, word_freqs)
 
-        # Build vocab from all tokens
-        seen = set()
+        tokens = [self.unk_token, self.bos_token, self.eos_token]
+        seen = set(tokens)
         idx = 0
+
+        for t in tokens:
+            self.vocab[t] = idx
+            self.vocab_r[idx] = t
+            idx += 1
+
         for word in word_freqs:
-            tokens = self.tokenize_word(word)
-            for t in tokens:
+            for t in self.tokenize_word(word):
                 if t not in seen:
                     self.vocab[t] = idx
                     self.vocab_r[idx] = t
                     seen.add(t)
                     idx += 1
 
-    def encode(self, text):
+    def encode(self, text, add_special_tokens=False):
         words = text.split()
         tokens = []
+        if add_special_tokens:
+            tokens.append(self.vocab[self.bos_token])
+
         for word in words:
             pieces = self.tokenize_word(word)
             for p in pieces:
-                tid = self.vocab.get(p, 0)  # 0 = UNK
-                tokens.append(tid)
+                tokens.append(self.vocab.get(p, self.vocab[self.unk_token]))
+
+        if add_special_tokens:
+            tokens.append(self.vocab[self.eos_token])
+
         return tokens
 
     def decode(self, token_ids):
-        pieces = [self.vocab_r.get(tid, "?") for tid in token_ids]
-        return "".join(pieces)
+        pieces = []
+        for tid in token_ids:
+            token = self.vocab_r.get(tid, self.unk_token)
+            if token in {self.bos_token, self.eos_token, self.unk_token}:
+                continue
+            pieces.append(token)
+        return " ".join(pieces)
