@@ -22,18 +22,24 @@
   align-items: center;
   gap: 12px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 #site-header__logo .o-icon {
   width: 34px;
   height: 34px;
   color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
 }
 
 #site-header__nav {
   display: flex;
   align-items: center;
   gap: 18px;
+  margin-left: auto;
 }
 
 #site-header__nav-list-01 {
@@ -59,6 +65,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 0 0 auto;
 }
 
 #site-header__button-transparent,
@@ -72,6 +79,8 @@
   border-radius: 999px;
   font-size: 14px;
   transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 #site-header__button-transparent {
@@ -112,5 +121,9 @@
   #site-menu,
   #site-header__button-menu {
     display: block;
+  }
+
+  #site-header__container {
+    gap: 12px;
   }
 }
