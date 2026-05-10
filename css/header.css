@@ -1,0 +1,116 @@
+#site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(18px);
+  background: rgba(11, 12, 16, 0.72);
+  border-bottom: 1px solid var(--line);
+}
+
+#site-header__container {
+  width: min(100% - 32px, var(--max));
+  margin: 0 auto;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+#site-header__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+}
+
+#site-header__logo .o-icon {
+  width: 34px;
+  height: 34px;
+  color: #fff;
+}
+
+#site-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+#site-header__nav-list-01 {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 0;
+  margin: 0;
+}
+
+.site-header__nav-item a {
+  color: var(--muted);
+  font-size: 14px;
+  transition: color 0.2s ease;
+}
+
+.site-header__nav-item a:hover {
+  color: var(--text);
+}
+
+#site-header__button-list {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#site-header__button-transparent,
+#site-header__button-border,
+#site-header__button-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+#site-header__button-transparent {
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line);
+}
+
+#site-header__button-border {
+  color: var(--text);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+#site-header__button-cta {
+  color: #0b0c10;
+  background: #ffffff;
+  font-weight: 700;
+}
+
+#site-header__button-transparent:hover,
+#site-header__button-border:hover,
+#site-header__button-cta:hover {
+  transform: translateY(-1px);
+}
+
+#site-menu,
+#site-header__button-menu {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  #site-header__nav-list-01,
+  #site-header__button-list {
+    display: none;
+  }
+
+  #site-menu,
+  #site-header__button-menu {
+    display: block;
+  }
+}
