@@ -58,6 +58,10 @@
   color: #111827;
 }
 
+#chat-input::placeholder {
+  color: #6b7280;
+}
+
 #chat-form button {
   padding: 12px 18px;
   border: none;
@@ -65,4 +69,8 @@
   background: #22c55e;
   color: #ffffff;
   cursor: pointer;
+}
+
+#chat-form button:hover {
+  background: #16a34a;
 }
