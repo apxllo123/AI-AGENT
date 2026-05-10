@@ -7,7 +7,6 @@ def softmax(x, axis=-1):
     return expx / expx.sum(axis=axis, keepdims=True)
 
 def scaled_dot_product_attention(q, k, v, mask=None):
-    # q, k, v: (B, H, T, d)
     d = k.shape[-1]
     attn_logits = np.matmul(q, k.transpose(0, 1, 3, 2)) / np.sqrt(d)
 
@@ -33,7 +32,6 @@ class HugeTransformer:
         self.tok_emb = np.random.normal(0, 0.1, (vocab_size, n_embd))
         self.pos_emb = np.random.normal(0, 0.1, (block_size, n_embd))
 
-        # weights for each layer
         self.Wq = []
         self.Wk = []
         self.Wv = []
@@ -129,7 +127,6 @@ class HugeTransformer:
         return idx
 
 
-# === Training function that matches your server import ===
 def train_huge_model(bpe, vocab_size, text_corpus="hello world hello ai agent from scratch hello how are you fine thank you bye"):
     model = HugeTransformer(
         vocab_size=vocab_size,
@@ -139,8 +136,10 @@ def train_huge_model(bpe, vocab_size, text_corpus="hello world hello ai agent fr
         block_size=32,
     )
 
-    tokens = bpe.encode(text_corpus)
-    tokens = tokens.reshape(1, -1)
+    # --- IMPORTANT FIX ---
+    tokens_list = bpe.encode(text_corpus)           # this returns a list of ints
+    tokens = np.array(tokens_list)                  # turn it into a NumPy array
+    tokens = tokens.reshape(1, -1)                  # now this line works
 
     print("\n=== HUGE 4‑Layer NumPy Transformer Training ===")
     print("Model vocab size:", vocab_size)
@@ -163,13 +162,10 @@ def train_huge_model(bpe, vocab_size, text_corpus="hello world hello ai agent fr
 
     print("\n=== Huge model generation (prefix: 'hello') ===")
     prefix = "hello"
-    prefix_ids = bpe.encode(prefix).tolist()
-    x = np.array([prefix_ids])
-
-    out = model.generate(x, max_new_tokens=60)
-    out = out[0].tolist()
-    decoded = bpe.decode(out)
-    print("Generated IDs:", out)
-    print("Decoded text:", repr(decoded))
+    prefix_ids = bpe.encode(prefix)
+    prefix_array = np.array(prefix_ids).reshape(1, -1)
+    out = model.generate(prefix_array, max_new_tokens=60)
+    raw = bpe.decode(out[0].tolist())
+    print("Decoded text:", repr(raw))
 
     return model

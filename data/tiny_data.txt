@@ -1,10 +1,15 @@
+tiny_data.txt
+============
+
 hello world
 ai agent is free and unlimited
-you are talking to an ai agent
-ai agent can remember things
-ai agent can answer questions
-building ai from scratch is fun
-you are learning how to build ai
-ai agent runs on your computer
-ai agent can read files
-ai agent uses memory to remember what you said
+you are building your own agent
+building an ai agent from scratch is fun
+you can ask the ai agent questions
+ai agent can remember what you said
+ai agent can read files on your computer
+learning how ai works is very interesting
+ai agent can help you write code
+ai agent can explain things step by step
+you are using a codespace on github
+codespaces are virtual machines in the browser
