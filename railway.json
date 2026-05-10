@@ -1,6 +1,6 @@
 {
-  "run": {
-    "command": "python -m server.server",
-    "port": 5000
+  "$schema": "https://railway.com/railway.schema.json",
+  "deploy": {
+    "startCommand": "python -m server.server"
   }
 }
