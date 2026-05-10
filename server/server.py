@@ -15,11 +15,12 @@ if REPO_ROOT not in sys.path:
 
 APP = Flask(__name__)
 
+SITE_DIR = os.path.join(REPO_ROOT, "my-site")
+CSS_DIR = os.path.join(SITE_DIR, "css")
+
 BPE = None
 MODEL = None
 MODEL_LOADED = False
-
-SITE_DIR = os.path.join(REPO_ROOT, "my-site")
 
 
 def load_model():
@@ -60,9 +61,15 @@ def home():
 
 
 @APP.route("/<path:filename>", methods=["GET"])
-def static_files(filename):
-    """Serve site files like CSS."""
+def site_files(filename):
+    """Serve top-level site files like /index.html if requested."""
     return send_from_directory(SITE_DIR, filename)
+
+
+@APP.route("/css/<path:filename>", methods=["GET"])
+def css_files(filename):
+    """Serve CSS files from my-site/css."""
+    return send_from_directory(CSS_DIR, filename)
 
 
 @APP.route("/info", methods=["GET"])
