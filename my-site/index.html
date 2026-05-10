@@ -13,13 +13,18 @@
       font-family: Arial, sans-serif;
     }
 
+    #canvas {
+      display: none;
+    }
+
     #ui {
       position: relative;
-      z-index: 2;
+      z-index: 9999;
       width: 100%;
       min-height: 100vh;
       padding: 24px;
       box-sizing: border-box;
+      background: transparent;
     }
 
     .o-container {
@@ -29,11 +34,11 @@
 
     .panel {
       background: white;
-      border: 1px solid #ddd;
+      color: black;
       border-radius: 12px;
       padding: 24px;
       margin-top: 20px;
-      box-shadow: 0 6px 24px rgba(0,0,0,.08);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
     }
 
     h1, h2, p {
@@ -42,6 +47,8 @@
   </style>
 </head>
 <body>
+  <canvas id="canvas"></canvas>
+
   <div id="ui">
     <div class="o-container">
       <h1>AI-AGENT</h1>
