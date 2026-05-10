@@ -4,12 +4,9 @@ import pickle
 from flask import Flask, request, jsonify
 import numpy as np
 
-# Add repo root to PYTHONPATH
 repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if repo_root not in sys.path:
     sys.path.insert(0, repo_root)
-
-from tokenizer.transformer import SimpleBPE
 
 app = Flask(__name__)
 
@@ -27,6 +24,11 @@ def load_model():
     bpe_path = os.path.join(repo_root, "artifacts", "bpe.pkl")
     model_path = os.path.join(repo_root, "artifacts", "model.pkl")
 
+    if not os.path.exists(bpe_path):
+        raise FileNotFoundError(f"Missing tokenizer file: {bpe_path}")
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Missing model file: {model_path}")
+
     with open(bpe_path, "rb") as f:
         bpe = pickle.load(f)
 
@@ -40,6 +42,22 @@ def load_model():
 def ensure_model_loaded():
     if not model_loaded:
         load_model()
+
+
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"status": "running", "message": "AI-AGENT is live"})
+
+
+@app.route("/info", methods=["GET"])
+def info():
+    return jsonify(
+        {
+            "status": "running",
+            "model": "huge 4-layer NumPy transformer",
+            "bpe_vocab_size": len(bpe.vocab) if bpe else 0,
+        }
+    )
 
 
 @app.route("/chat", methods=["POST"])
@@ -59,17 +77,6 @@ def chat():
     reply = raw.strip()
 
     return jsonify({"prompt": prompt, "reply": reply})
-
-
-@app.route("/info", methods=["GET"])
-def info():
-    return jsonify(
-        {
-            "status": "running",
-            "model": "huge 4-layer NumPy transformer",
-            "bpe_vocab_size": len(bpe.vocab) if bpe else 0,
-        }
-    )
 
 
 if __name__ == "__main__":
