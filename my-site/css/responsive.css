@@ -8,6 +8,10 @@
   #site-header__button-menu {
     display: block;
   }
+
+  #chat-shell {
+    height: 520px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -25,6 +29,18 @@
 
   .logo-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #chat-shell {
+    height: 480px;
+  }
+
+  #chat-form {
+    flex-direction: column;
+  }
+
+  #chat-form button {
+    width: 100%;
   }
 }
 
@@ -44,5 +60,22 @@
 
   .logo-grid {
     grid-template-columns: 1fr;
+  }
+
+  #chat-shell {
+    height: 420px;
+  }
+
+  #chat-messages {
+    padding: 16px;
+  }
+
+  #chat-form {
+    padding: 12px;
+  }
+
+  #chat-input,
+  #chat-form button {
+    width: 100%;
   }
 }
