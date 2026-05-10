@@ -1,0 +1,6 @@
+{
+  "run": {
+    "command": "python -m server.server",
+    "port": 5000
+  }
+}
