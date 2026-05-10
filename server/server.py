@@ -5,7 +5,7 @@ import sys
 import pickle
 
 import numpy as np
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if REPO_ROOT not in sys.path:
@@ -16,6 +16,8 @@ APP = Flask(__name__)
 BPE = None
 MODEL = None
 MODEL_LOADED = False
+
+SITE_DIR = os.path.join(REPO_ROOT, "my-site")
 
 
 def load_model():
@@ -51,8 +53,14 @@ def ensure_model_loaded():
 
 @APP.route("/", methods=["GET"])
 def home():
-    """Return a simple homepage response."""
-    return jsonify({"status": "running", "message": "AI-AGENT is live"})
+    """Serve the UI."""
+    return send_from_directory(SITE_DIR, "index.html")
+
+
+@APP.route("/<path:filename>", methods=["GET"])
+def static_files(filename):
+    """Serve site files like CSS."""
+    return send_from_directory(SITE_DIR, filename)
 
 
 @APP.route("/info", methods=["GET"])
