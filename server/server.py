@@ -1,85 +1,93 @@
+"""Flask server for AI-AGENT inference."""
+
 import os
 import sys
 import pickle
-from flask import Flask, request, jsonify
+
 import numpy as np
+from flask import Flask, jsonify, request
 
-repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if repo_root not in sys.path:
-    sys.path.insert(0, repo_root)
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
-app = Flask(__name__)
+APP = Flask(__name__)
 
-bpe = None
-model = None
-model_loaded = False
+BPE = None
+MODEL = None
+MODEL_LOADED = False
 
 
 def load_model():
-    global bpe, model, model_loaded
+    """Load tokenizer and model artifacts from disk."""
+    global BPE, MODEL, MODEL_LOADED
 
-    if model_loaded:
+    if MODEL_LOADED:
         return
 
-    bpe_path = os.path.join(repo_root, "artifacts", "bpe.pkl")
-    model_path = os.path.join(repo_root, "artifacts", "model.pkl")
+    bpe_path = os.path.join(REPO_ROOT, "artifacts", "bpe.pkl")
+    model_path = os.path.join(REPO_ROOT, "artifacts", "model.pkl")
 
     if not os.path.exists(bpe_path):
         raise FileNotFoundError(f"Missing tokenizer file: {bpe_path}")
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Missing model file: {model_path}")
 
-    with open(bpe_path, "rb") as f:
-        bpe = pickle.load(f)
+    with open(bpe_path, "rb") as file_obj:
+        BPE = pickle.load(file_obj)
 
-    with open(model_path, "rb") as f:
-        model = pickle.load(f)
+    with open(model_path, "rb") as file_obj:
+        MODEL = pickle.load(file_obj)
 
-    model_loaded = True
+    MODEL_LOADED = True
 
 
-@app.before_request
+@APP.before_request
 def ensure_model_loaded():
-    if not model_loaded:
+    """Load the model before handling a request."""
+    if not MODEL_LOADED:
         load_model()
 
 
-@app.route("/", methods=["GET"])
+@APP.route("/", methods=["GET"])
 def home():
+    """Return a simple homepage response."""
     return jsonify({"status": "running", "message": "AI-AGENT is live"})
 
 
-@app.route("/info", methods=["GET"])
+@APP.route("/info", methods=["GET"])
 def info():
+    """Return basic service information."""
     return jsonify(
         {
             "status": "running",
             "model": "huge 4-layer NumPy transformer",
-            "bpe_vocab_size": len(bpe.vocab) if bpe else 0,
+            "bpe_vocab_size": len(BPE.vocab) if BPE else 0,
         }
     )
 
 
-@app.route("/chat", methods=["POST"])
+@APP.route("/chat", methods=["POST"])
 def chat():
+    """Generate a reply from the model."""
     data = request.get_json(silent=True) or {}
-    prompt = data.get("prompt", "").strip()
+    prompt_text = data.get("prompt", "").strip()
     max_new_tokens = data.get("max_new_tokens", 40)
 
-    if not prompt:
+    if not prompt_text:
         return jsonify({"error": "prompt is required"}), 400
 
-    token_ids = bpe.encode(prompt)
-    x = np.array(token_ids).reshape(1, -1)
+    token_ids = BPE.encode(prompt_text)
+    inputs = np.array(token_ids).reshape(1, -1)
 
-    out = model.generate(x, max_new_tokens)
-    raw = bpe.decode(out[0].tolist())
-    reply = raw.strip()
+    output = MODEL.generate(inputs, max_new_tokens)
+    raw_text = BPE.decode(output[0].tolist())
+    reply = raw_text.strip()
 
-    return jsonify({"prompt": prompt, "reply": reply})
+    return jsonify({"prompt": prompt_text, "reply": reply})
 
 
 if __name__ == "__main__":
     load_model()
     port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    APP.run(host="0.0.0.0", port=port, debug=False)
