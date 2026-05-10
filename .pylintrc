@@ -1,0 +1,24 @@
+[MASTER]
+ignore=artifacts
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-function-docstring,
+    missing-class-docstring,
+    invalid-name,
+    too-many-arguments,
+    too-many-locals,
+    too-many-instance-attributes,
+    too-many-positional-arguments,
+    redefined-outer-name,
+    global-statement,
+    unused-variable,
+    unused-import,
+    import-error,
+    wrong-import-order,
+    line-too-long,
+    missing-final-newline
+
+[FORMAT]
+max-line-length=130
