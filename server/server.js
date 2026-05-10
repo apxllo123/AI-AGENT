@@ -1,11 +1,20 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
+const sitePath = path.join(__dirname, "../my-site");
+app.use(express.static(sitePath));
+
 const chatHistory = new Map();
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(sitePath, "index.html"));
+});
 
 app.post("/chat", async (req, res) => {
   try {
@@ -23,13 +32,9 @@ app.post("/chat", async (req, res) => {
     history.push({ role: "user", text: message.trim() });
 
     const reply = `You said: ${message.trim()}`;
-
     history.push({ role: "assistant", text: reply });
 
-    res.json({
-      reply,
-      history,
-    });
+    res.json({ reply, history });
   } catch (error) {
     res.status(500).json({ error: "Server error" });
   }
