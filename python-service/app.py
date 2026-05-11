@@ -8,19 +8,24 @@ base_dir = os.path.dirname(__file__)
 bpe_path = os.path.join(base_dir, "artifacts", "bpe.pkl")
 model_path = os.path.join(base_dir, "artifacts", "model.pkl")
 
+bpe = None
+model = None
+
 try:
     with open(bpe_path, "rb") as f:
         bpe = pickle.load(f)
 except (FileNotFoundError, pickle.UnpicklingError, OSError) as err:
-    bpe = None
     print(f"Failed to load BPE: {err}")
 
 try:
     with open(model_path, "rb") as f:
         model = pickle.load(f)
 except (FileNotFoundError, pickle.UnpicklingError, OSError) as err:
-    model = None
     print(f"Failed to load model: {err}")
+
+@app.route("/")
+def home():
+    return jsonify({"status": "ok"})
 
 @app.route("/reply", methods=["POST"])
 def reply():
