@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS - AI Assistant</title>
+    <link rel="stylesheet" href="css/jarvis.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        /* Override some styles for this page */
+        .font-import { font-family: 'Orbitron', sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="jarvis-ui">
+        <!-- Header -->
+        <header id="jarvis-header">
+            <div id="jarvis-header-content">
+                <div id="jarvis-logo">
+                    <div class="logo-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <circle cx="12" cy="12" r="4"/>
+                            <line x1="12" y1="2" x2="12" y2="6"/>
+                            <line x1="12" y1="18" x2="12" y2="22"/>
+                            <line x1="2" y1="12" x2="6" y2="12"/>
+                            <line x1="18" y1="12" x2="22" y2="12"/>
+                        </svg>
+                    </div>
+                    <span class="logo-text">JARVIS</span>
+                </div>
+                <div id="jarvis-status">
+                    <span class="status-dot"></span>
+                    <span>ONLINE</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Chat -->
+        <main id="jarvis-chat">
+            <div id="chat-container">
+                <div id="chat-header">
+                    <span id="chat-title">COMMUNICATION LINK</span>
+                    <span id="model-indicator">llama3</span>
+                </div>
+                
+                <div id="chat-messages">
+                    <div class="message received">Good evening, sir. Systems online and operational. How may I assist you?</div>
+                </div>
+
+                <div id="loading">
+                    <div class="loading-spinner"></div>
+                    <span>Processing request...</span>
+                </div>
+
+                <form id="chat-input-container">
+                    <input type="text" id="chat-input" placeholder="Enter command or message..." autocomplete="off" autofocus>
+                    <button type="submit" id="chat-submit">SEND</button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const chatInput = document.getElementById('chat-input');
+        const chatSubmit = document.getElementById('chat-submit');
+        const chatMessages = document.getElementById('chat-messages');
+        const loading = document.getElementById('loading');
+        const modelIndicator = document.getElementById('model-indicator');
+
+        let chatHistory = [];
+
+        // Auto-detect task type
+        function detectTask(message) {
+            const m = message.toLowerCase();
+            if (m.match(/code|script|write|program|function|debug|fix|python|lua|javascript|html|css|api/)) {
+                return 'qwen2.5-coder';
+            }
+            return 'llama3';
+        }
+
+        // Send message to local Jarvis
+        async function sendMessage(message) {
+            if (!message.trim()) return;
+
+            // Add user message
+            addMessage(message, 'sent');
+            chatInput.value = '';
+
+            // Show loading
+            loading.style.display = 'block';
+            chatSubmit.disabled = true;
+
+            try {
+                const task = detectTask(message);
+                modelIndicator.textContent = task;
+
+                const response = await fetch('http://localhost:11434/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: task,
+                        messages: [
+                            { role: 'system', content: 'You are Jarvis, a helpful AI. Be concise and professional.' },
+                            ...chatHistory.slice(-6),
+                            { role: 'user', content: message }
+                        ],
+                        stream: false
+                    }),
+                    signal: AbortSignal.timeout(120000)
+                });
+
+                const data = await response.json();
+                const reply = data.message?.content || 'I apologize, sir. I encountered an issue processing that request.';
+
+                addMessage(reply, 'received');
+                chatHistory.push({ role: 'user', content: message });
+                chatHistory.push({ role: 'assistant', content: reply });
+
+            } catch (error) {
+                let msg = 'Connection failed, sir. ';
+                if (error.name === 'AbortError') {
+                    msg += 'The request timed out. ';
+                }
+                msg += 'Is Ollama running? (ollama serve)';
+                addMessage(msg, 'received');
+            }
+
+            loading.style.display = 'none';
+            chatSubmit.disabled = false;
+            chatInput.focus();
+        }
+
+        function addMessage(text, type) {
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            // Format code blocks
+            text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+            div.innerHTML = text;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Submit on button click
+        chatSubmit.addEventListener('click', (e) => {
+            e.preventDefault();
+            sendMessage(chatInput.value);
+        });
+
+        // Submit on Enter
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage(chatInput.value);
+            }
+        });
+
+        // Focus input
+        chatInput.focus();
+    </script>
+</body>
+</html>

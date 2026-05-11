@@ -1,0 +1,35 @@
+name: JARVIS Local Setup
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'local-jarvis/**'
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Ollama
+      run: |
+        brew install ollama
+        
+    - name: Start Ollama
+      run: |
+        brew services start ollama
+        sleep 5
+        
+    - name: Pull models
+      run: |
+        ollama pull llama3
+        ollama pull qwen2.5-coder
+        
+    - name: Verify
+      run: |
+        ollama list
