@@ -1,7 +1,11 @@
 tiny_data.txt
 ============
 
-hello world
+hello world hello world hello world
+hello there how are you doing today
+hi good morning welcome back
+good afternoon nice to see you
+good evening hope you had a great day
 ai agent is free and unlimited
 you are building your own agent
 building an ai agent from scratch is fun
@@ -13,3 +17,217 @@ ai agent can help you write code
 ai agent can explain things step by step
 you are using a codespace on github
 codespaces are virtual machines in the browser
+python is a great programming language
+javascript makes websites interactive
+html creates the structure of web pages
+css styles the look and feel
+machine learning is about teaching computers
+neural networks are inspired by brains
+transformers are the backbone of modern ai
+gpt uses attention mechanisms
+tokens are the basic units of text
+embeddings represent words as numbers
+the internet connects computers worldwide
+servers host websites and applications
+databases store structured information
+apis let applications talk to each other
+cloud computing provides resources on demand
+github hosts code repositories
+git tracks changes in your code
+branches let you work on features safely
+pull requests review code changes
+testing ensures your code works correctly
+bugs are errors in your programs
+debugging finds and fixes those errors
+functions organize code into reusable blocks
+classes organize data and behavior
+objects are instances of classes
+loops repeat code multiple times
+conditions make decisions in code
+variables store information for later
+arrays hold lists of items
+dictionaries map keys to values
+strings are text data
+numbers can be integers or decimals
+booleans are true or false
+comments explain your code to others
+indentation shows code structure
+errors help you find problems
+logs track what your code does
+apis return data in various formats
+json is a common data format
+xml is another data format
+restful services use http methods
+get retrieves data from servers
+post creates new data on servers
+put updates existing data
+delete removes data from servers
+authentication proves who you are
+authorization controls what you can access
+encryption protects your data
+compression makes files smaller
+archives bundle multiple files together
+images contain visual information
+videos show motion and sound
+audio stores sound data
+animations bring interfaces to life
+accessibility helps everyone use your app
+performance makes your app feel fast
+scalability handles more users
+reliability keeps your app running
+security protects against attacks
+usability makes your app easy to use
+design creates visual experiences
+prototyping tests ideas quickly
+iteration improves your product
+feedback helps you improve
+analytics shows how people use your app
+metrics measure important things
+goals define what you want to achieve
+priorities order your tasks
+planning prepares for the future
+execution does the actual work
+monitoring watches your systems
+alerts notify you of problems
+recovery restores your systems
+backup saves your data
+documentation explains your code
+examples help others learn
+tutorials guide new users
+references provide detailed info
+support helps users with issues
+community builds great software
+collaboration brings people together
+innovation solves problems differently
+creativity generates new ideas
+curiosity asks interesting questions
+learning never stops
+practice makes perfect
+patience achieves great things
+determination keeps you going
+perseverance overcomes obstacles
+energy powers your work
+passion drives excellence
+excellence creates quality
+quality ensures satisfaction
+satisfaction builds loyalty
+loyalty creates success
+success rewards effort
+effort creates achievement
+achievement motivates more
+motivation drives action
+action creates change
+change brings improvement
+improvement leads to growth
+growth enables opportunity
+opportunity brings success
+success requires teamwork
+teamwork multiplies power
+power enables achievement
+achievement requires focus
+focus drives excellence
+excellence requires discipline
+discipline creates habit
+habit enables consistency
+consistency builds trust
+trust enables collaboration
+collaboration enables innovation
+innovation drives progress
+progress creates value
+value satisfies customers
+customers provide feedback
+feedback drives improvement
+improvement creates quality
+quality earns loyalty
+loyalty builds community
+community drives success
+success creates opportunity
+opportunity enables growth
+growth requires learning
+learning requires curiosity
+curiosity drives discovery
+discovery drives innovation
+innovation requires courage
+courage tries new things
+new things create value
+value requires quality
+quality requires discipline
+discipline requires habit
+habit requires consistency
+consistency requires practice
+practice requires patience
+patience requires trust
+trust requires reliability
+reliability requires quality
+quality requires excellence
+excellence requires focus
+focus requires prioritization
+prioritization requires clarity
+clarity creates direction
+direction creates purpose
+purpose creates motivation
+motivation drives action
+action requires courage
+courage requires confidence
+confidence comes from practice
+practice comes from experience
+experience comes from trying
+trying creates learning
+learning creates improvement
+improvement creates excellence
+excellence is a habit
+habit is consistency
+consistency is reliability
+reliability is trust
+trust is collaboration
+collaboration is success
+success is achievement
+achievement is growth
+growth is opportunity
+opportunity is innovation
+innovation is creativity
+creativity is curiosity
+curiosity is learning
+learning is growth
+growth is success
+success is happiness
+happiness is fulfillment
+fulfillment is achievement
+achievement is recognition
+recognition is reputation
+reputation is trust
+trust is loyalty
+loyalty is return customers
+return customers are revenue
+revenue enables investment
+investment enables growth
+growth enables opportunity
+opportunity enables innovation
+innovation enables leadership
+leadership creates influence
+influence creates impact
+impact creates change
+change creates improvement
+improvement creates value
+value creates wealth
+wealth enables generosity
+generosity creates community
+community creates belonging
+belonging creates happiness
+happiness is the goal
+the goal is fulfillment
+fulfillment is success
+success is achievement
+achievement is recognition
+recognition is respect
+respect is trust
+trust is collaboration
+collaboration is power
+power is ability
+ability is skill
+skill is practice
+practice is learning
+learning is growth
+growth is opportunity
+opportunity is success
+success is happiness
