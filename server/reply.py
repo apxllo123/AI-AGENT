@@ -32,6 +32,12 @@ else:
     print("Model loaded, but no usable prediction method was found.", file=sys.stderr)
     sys.exit(1)
 
+if hasattr(output, "tolist"):
+    output = output.tolist()
+
+if isinstance(output, (list, tuple)) and len(output) == 1:
+    output = output[0]
+
 if hasattr(bpe, "decode") and not isinstance(output, str):
     reply = bpe.decode(output)
 else:
