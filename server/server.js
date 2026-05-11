@@ -15,7 +15,7 @@ const chatHistory = new Map();
 
 function getModelReply(message) {
   return new Promise((resolve, reject) => {
-    const py = spawn("python", [path.join(__dirname, "reply.py"), message], {
+    const py = spawn("python3", [path.join(__dirname, "reply.py"), message], {
       cwd: __dirname,
       stdio: ["ignore", "pipe", "pipe"]
     });
@@ -31,9 +31,14 @@ function getModelReply(message) {
       error += data.toString();
     });
 
+    py.on("error", (err) => {
+      reject(err);
+    });
+
     py.on("close", (code) => {
       if (code !== 0) {
-        return reject(new Error(error || `Python exited with code ${code}`));
+        reject(new Error(error || `Python exited with code ${code}`));
+        return;
       }
       resolve(output.trim() || "I’m not sure how to reply to that.");
     });
@@ -67,7 +72,8 @@ app.post("/chat", async (req, res) => {
 
     res.json({ reply, history });
   } catch (error) {
-    res.status(500).json({ error: "Server error" });
+    console.error(error);
+    res.status(500).json({ error: error.message || "Server error" });
   }
 });
 
