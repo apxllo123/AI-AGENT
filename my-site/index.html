@@ -3,84 +3,50 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI-AGENT</title>
-  <link rel="stylesheet" href="./css/base.css" />
-  <link rel="stylesheet" href="./css/header.css" />
-  <link rel="stylesheet" href="./css/hero.css" />
-  <link rel="stylesheet" href="./css/cta.css" />
-  <link rel="stylesheet" href="./css/chat.css" />
-  <link rel="stylesheet" href="./css/responsive.css" />
+  <title>JARVIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/jarvis.css" />
 </head>
 <body>
-  <canvas id="canvas"></canvas>
+  <canvas id="bg-canvas"></canvas>
 
-  <div id="ui">
-    <header id="site-header">
-      <div id="site-header__container">
-        <a id="site-header__logo" href="/">
-          <span class="o-icon">◆</span>
-          <span>AI-AGENT</span>
-        </a>
-
-        <nav id="site-header__nav">
-          <ul id="site-header__nav-list-01">
-            <li class="site-header__nav-item"><a href="#home-hero">Home</a></li>
-            <li class="site-header__nav-item"><a href="#home-cta">CTA</a></li>
-            <li class="site-header__nav-item"><a href="#chat-panel">Chat</a></li>
-          </ul>
-        </nav>
+  <div id="app">
+    <header id="hdr">
+      <div id="hdr-left">
+        <div id="logo-ring"></div>
+        <span id="logo-text">J.A.R.V.I.S</span>
+      </div>
+      <div id="hdr-right">
+        <span id="status-dot"></span>
+        <span id="status-text">ONLINE</span>
+        <span id="model-badge">llama3</span>
       </div>
     </header>
 
-    <main>
-      <section id="home-hero">
-        <div id="home-hero__wrapper" class="o-container">
-          <div id="home-hero__top">
-            <a id="home-hero__new-badge" href="#" aria-label="New announcement">
-              <span id="home-hero__new-badge-tag">New</span>
-              <span>Introducing AI-AGENT</span>
-            </a>
-
-            <h1 id="home-hero__title">AI-AGENT Your AI assistant is live.</h1>
-          </div>
-
-          <figure id="home-hero__media">
-            <img src="https://via.placeholder.com/1200x700" alt="Preview" />
-          </figure>
-        </div>
-      </section>
-
-      <section id="home-cta" class="o-container">
-        <div id="home-cta__copy">
-          <p id="home-cta__caption">Chat</p>
-          <h2 id="home-cta__title">If you can see this text, the page is working.</h2>
-        </div>
-
-        <a id="home-cta__button" href="#" aria-label="Start chat">Start Chat</a>
-
-        <div class="logo-grid-wrapper">
-          <div class="logo-grid">
-            <div class="logo-grid-item"><span class="o-icon">A</span></div>
-            <div class="logo-grid-item"><span class="o-icon">I</span></div>
-            <div class="logo-grid-item"><span class="o-icon">-</span></div>
-            <div class="logo-grid-item"><span class="o-icon">G</span></div>
-          </div>
-        </div>
-      </section>
-
-      <section id="chat-panel" class="o-container" style="display:none;">
-        <div id="chat-shell">
-          <div id="chat-messages" aria-live="polite"></div>
-
-          <form id="chat-form">
-            <input id="chat-input" type="text" placeholder="Type a message..." autocomplete="off" />
-            <button type="submit">Send</button>
-          </form>
-        </div>
-      </section>
+    <main id="chat-main">
+      <div id="chat-messages"></div>
+      <div id="typing-indicator" style="display:none">
+        <span></span><span></span><span></span>
+      </div>
     </main>
+
+    <footer id="chat-footer">
+      <div id="input-row">
+        <input id="chat-input" type="text" placeholder="Enter command…" autocomplete="off" autofocus />
+        <button id="send-btn" aria-label="Send">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+      <div id="footer-meta">
+        <span id="memory-status">Memory active</span>
+        <button id="clear-memory-btn">Clear Memory</button>
+      </div>
+    </footer>
   </div>
 
-  <script src="./js/chat.js" defer></script>
+  <script src="./js/chat.js"></script>
 </body>
 </html>
