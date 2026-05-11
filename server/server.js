@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const { spawn } = require("child_process");
 
 const app = express();
 
@@ -12,30 +13,31 @@ app.use(express.static(sitePath));
 
 const chatHistory = new Map();
 
-function getBotReply(message) {
-  const text = message.toLowerCase();
+function getModelReply(message) {
+  return new Promise((resolve, reject) => {
+    const py = spawn("python", [path.join(__dirname, "reply.py"), message], {
+      cwd: __dirname,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
 
-  if (text.includes("hello") || text.includes("hi") || text.includes("hey")) {
-    return "Hello! How can I help you today?";
-  }
+    let output = "";
+    let error = "";
 
-  if (text.includes("how are you")) {
-    return "I’m doing great — thanks for asking. How are you?";
-  }
+    py.stdout.on("data", (data) => {
+      output += data.toString();
+    });
 
-  if (text.includes("what can you do")) {
-    return "I can chat with you, answer simple questions, and help with your site.";
-  }
+    py.stderr.on("data", (data) => {
+      error += data.toString();
+    });
 
-  if (text.includes("help")) {
-    return "Sure, tell me what you need help with.";
-  }
-
-  if (text.includes("thanks") || text.includes("thank you")) {
-    return "You’re welcome!";
-  }
-
-  return "I’m not sure I understood that. Try asking me something simple like hello or what can you do.";
+    py.on("close", (code) => {
+      if (code !== 0) {
+        return reject(new Error(error || `Python exited with code ${code}`));
+      }
+      resolve(output.trim() || "I’m not sure how to reply to that.");
+    });
+  });
 }
 
 app.get("/", (req, res) => {
@@ -55,9 +57,11 @@ app.post("/chat", async (req, res) => {
     }
 
     const history = chatHistory.get(userId);
-    history.push({ role: "user", text: message.trim() });
+    const cleanMessage = message.trim();
 
-    const reply = getBotReply(message.trim());
+    history.push({ role: "user", text: cleanMessage });
+
+    const reply = await getModelReply(cleanMessage);
 
     history.push({ role: "assistant", text: reply });
 
