@@ -21,8 +21,6 @@ except Exception:
 try:
     if hasattr(bpe, "encode"):
         encoded = bpe.encode(message)
-    elif hasattr(bpe, "encoder"):
-        encoded = bpe.encoder(message)
     else:
         encoded = message
 
@@ -35,10 +33,8 @@ try:
     else:
         output = "Model loaded, but no usable prediction method was found."
 
-    if hasattr(bpe, "decode"):
-        reply = bpe.decode(output) if not isinstance(output, str) else output
-    elif hasattr(bpe, "decoder"):
-        reply = bpe.decoder(output) if not isinstance(output, str) else output
+    if hasattr(bpe, "decode") and not isinstance(output, str):
+        reply = bpe.decode(output)
     else:
         reply = output
 except Exception:
