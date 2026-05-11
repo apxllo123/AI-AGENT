@@ -13,229 +13,93 @@ app.use(express.static(sitePath));
 const chatHistory = new Map();
 
 // ============================================
-// REAL AI GENERATION SYSTEM (Your custom model)
+// SMART AI - Picks coherent sentences from training data
 // ============================================
 
-// Training data for your AI
-const TRAINING_DATA = `
-hello world how are you today i am doing well thanks for asking
-hello world what is going on not much just building ai
-hello world i am excited to learn ai it is amazing what you can build
-hello world machine learning is so powerful you can teach computers
-hello world neural networks are like digital brains they learn patterns
-hello world transformers changed ai forever attention is amazing
-hello world python is great for ai and data science
-hello world javascript powers the web and node is awesome
-hello world github hosts the best code repositories
-hello world git tracks all your code changes
-hello world apis connect different applications
-hello world json is the most popular data format
-hello world html creates web page structure
-hello world css makes web pages beautiful
-hello world web development is fun and rewarding
-hello world coding is like writing instructions for computers
-hello world functions organize code into reusable parts
-hello world loops repeat code many times
-hello world conditions make decisions in code
-hello world variables store information for later
-hello world arrays hold lists of items
-hello world objects group related data together
-hello world classes define new types of objects
-hello world inheritance reuses code in classes
-hello world databases store important data
-hello world sql queries databases for data
-hello world nosql databases are flexible
-hello world cloud computing is very convenient
-hello world servers run your applications
-hello world localhost is your own computer
-hello world ports let applications communicate
-hello world http is the web protocol
-hello world get and post are http methods
-hello world rest apis are very popular
-hello world authentication protects your app
-hello world encryption keeps data secure
-hello world https is secure http
-hello world cookies store small data pieces
-hello world sessions track user state
-hello world testing makes code reliable
-hello world bugs are errors in code
-hello world debugging finds the bugs
-hello world console logs help debug
-hello world breakpoints stop code to inspect
-hello world nodes are points in a network
-hello world edges connect nodes together
-hello world graphs show relationships
-hello world algorithms solve problems efficiently
-hello world complexity matters for speed
-hello world big o notation measures efficiency
-hello world recursion calls functions themselves
-hello world stack manages function calls
-hello world heap stores dynamic data
-hello world pointers reference memory locations
-hello world references are safer than pointers
-hello world memory gets allocated and freed
-hello world garbage collection reclaims memory
-hello world languages have different strengths
-hello world types define what data means
-hello world types enforce correct usage
-hello world compilation translates to machine code
-hello world interpretation runs line by line
-hello world JIT compiles during execution
-hello world virtual machines run code
-hello world containers package applications
-hello world docker makes containers easy
-hello world kubernetes manages containers at scale
-hello world microservices are small services
-hello world apis are service contracts
-hello world http is a text protocol
-hello world tcp ensures reliable delivery
-hello world udp is faster but less reliable
-hello world dns maps names to addresses
-hello world domains are human readable names
-hello world websites need hosting
-hello world cdn makes sites very fast
-hello world cache stores data temporarily
-hello world redis is a fast cache database
-hello world mongodb stores json documents
-hello world postgresql is a powerful sql database
-hello world mysql is popular and reliable
-hello world sqlite is great for local apps
-hello world firebase provides easy backend
-hello world serverless runs code without servers
-hello world lambdas are serverless functions
-hello world functions as a service is powerful
-hello world apis gateway manages apis
-hello world authentication verifies identity
-hello world authorization controls access
-hello world oauth is standard for authorization
-hello world jwt tokens carry claims securely
-`.trim().split('\n').map(l => l.trim()).filter(l => l.length > 0);
+// Complete coherent sentences to pick from
+const RESPONSE_POOL = [
+  // Greetings
+  "Hello! How are you doing today?",
+  "Hey there! Good to see you!",
+  "Hi! What would you like to discuss?",
+  "Welcome! How can I help you today?",
+  "Good to see you! What is on your mind?",
+  // AI & Tech
+  "AI creates systems that can learn from data. Machine learning is a subset of ai.",
+  "Neural networks learn from data. They are inspired by biological brains.",
+  "Transformers use attention to understand context. They revolutionized NLP!",
+  "Python is great for AI and data science. It has powerful libraries.",
+  "JavaScript powers the web. It runs in browsers and servers.",
+  "GitHub hosts code repositories. Git tracks all your code changes.",
+  "APIs connect applications. REST is a popular style.",
+  "JSON is a popular data format. It is easy to read and parse.",
+  "HTML creates web page structure. CSS makes it beautiful.",
+  "Functions organize code into reusable parts.",
+  "Variables store information for later use.",
+  "Loops repeat code many times.",
+  "Conditions make decisions in code.",
+  "Classes define new types of objects.",
+  "Inheritance reuses code in classes.",
+  "Databases store organized information.",
+  "Cloud computing is very convenient.",
+  "Servers listen for requests and respond.",
+  "Testing makes code reliable.",
+  "Bugs are errors in code that need fixing.",
+  "Debugging finds and fixes bugs.",
+  "Console logs help debug applications.",
+  // Encouragement
+  "That is a great question! Keep asking questions.",
+  "Interesting perspective! Tell me more.",
+  "I love that curiosity! Ask me anything.",
+  "Great way to think about it! What else?",
+  // Fallbacks
+  "Tell me more about what you are working on.",
+  "I am here to help! What would you like to know?",
+  "Good question! Here is what I know...",
+  "Let me think about that. What specifically?",
+];
 
-// Build n-gram model from training data
-function buildModel(data) {
-  const model = {};
-  for (const line of data) {
-    const words = line.split(' ');
-    for (let i = 0; i < words.length - 1; i++) {
-      const key = words[i];
-      const next = words[i + 1];
-      if (!model[key]) model[key] = [];
-      model[key].push(next);
-    }
-  }
-  return model;
-}
-
-const ngramModel = buildModel(TRAINING_DATA);
-const vocab = Object.keys(ngramModel);
-
-// Generate response using your model
-function generateResponse(prompt, maxWords = 30) {
-  const words = prompt.toLowerCase().split(' ').filter(w => w.length > 0);
-  let current = words[words.length - 1] || 'hello';
-  const response = [current];
-  
-  // Try to find a starting word that exists in our model
-  for (let i = words.length - 1; i >= 0; i--) {
-    if (ngramModel[words[i]]) {
-      current = words[i];
-      break;
-    }
-  }
-  
-  // Generate word by word using n-gram probabilities
-  for (let i = 0; i < maxWords; i++) {
-    const nextOptions = ngramModel[current];
-    if (!nextOptions || nextOptions.length === 0) {
-      // Try random word from vocabulary
-      current = vocab[Math.floor(Math.random() * vocab.length)] || 'world';
-    } else {
-      current = nextOptions[Math.floor(Math.random() * nextOptions.length)];
-    }
-    
-    if (!current || current === undefined) break;
-    response.push(current);
-    
-    // Stop at sentence endings
-    if (current.endsWith('.') || current.endsWith('!') || current.endsWith('?')) break;
-  }
-  
-  let result = response.join(' ');
-  
-  // Clean up the response
-  result = result.replace(/\s+/g, ' ').trim();
-  result = result.charAt(0).toUpperCase() + result.slice(1);
-  
-  // Ensure it ends properly
-  if (!result.match(/[.!?]$/)) {
-    if (result.length > 20) result += '.';
-    else result += '!';
-  }
-  
-  return result;
-}
-
-// Fallback keyword responses (still useful for specific topics)
+// Keyword-specific responses for accuracy
 const KEYWORD_RESPONSES = {
-  python: "Python is a versatile programming language great for AI, web development, and data science. It has libraries like NumPy, PyTorch, Flask, Django, and pandas.",
-  javascript: "JavaScript powers the web! It's used for interactive websites, web apps, and servers with Node.js.",
-  html: "HTML provides semantic structure for web pages using tags like <div>, <span>, <p>.",
-  css: "CSS styles web pages - colors, layouts, fonts. Use Flexbox and Grid for layouts.",
-  ai: "AI creates systems that learn from data. Neural networks are inspired by biological brains.",
-  "machine learning": "Machine learning teaches computers to learn from examples rather than explicit programming.",
-  neural: "Neural networks use layers to learn patterns. They learn by adjusting weights during training.",
-  transformer: "Transformers use attention mechanisms - they revolutionized NLP and language AI!",
-  gpt: "GPT uses transformers and large language models trained on vast text data.",
-  github: "GitHub hosts code repositories and facilitates collaboration through pull requests.",
-  git: "Git tracks changes in code. Use git add, commit, push, pull, merge.",
-  api: "APIs let applications communicate. REST uses HTTP methods: GET, POST, PUT, DELETE.",
-  http: "HTTP is the web protocol. GET retrieves, POST creates, PUT updates, DELETE removes.",
+  python: "Python is a versatile programming language great for AI, web development, data science, and automation. It has libraries like NumPy, PyTorch, Flask, and Django.",
+  javascript: "JavaScript powers the web! It is used for interactive websites, web apps, mobile apps, and servers with Node.js.",
+  html: "HTML (HyperText Markup Language) provides the structure of web pages using semantic tags like <header>, <main>, <article>.",
+  css: "CSS (Cascading Style Sheets) styles web pages with colors, layouts, fonts, animations using Flexbox and Grid.",
+  ai: "AI (Artificial Intelligence) creates systems that can learn, reason, and make decisions. Machine learning learns from data.",
+  "machine learning": "Machine learning teaches computers to learn from data rather than explicit programming. Types include supervised, unsupervised, and reinforcement learning.",
+  neural: "Neural networks are inspired by biological brains. They have layers of nodes that learn patterns through training.",
+  transformer: "Transformers use attention mechanisms to understand context. They enabled GPT, BERT, and modern language models!",
+  gpt: "GPT (Generative Pre-trained Transformer) is OpenAIs large language model that generates human-like text.",
+  github: "GitHub hosts code repositories and enables collaboration through pull requests, issues, and code review.",
+  git: "Git tracks code changes. Key commands: git add, git commit, git push, git pull, git merge.",
+  api: "APIs (Application Programming Interfaces) let applications communicate. REST uses GET, POST, PUT, DELETE.",
+  http: "HTTP is the web protocol. GET retrieves data, POST creates data, PUT updates, DELETE removes.",
   server: "Servers provide services to clients. They listen on ports and respond to requests.",
-  database: "Databases store structured data. SQL uses tables. NoSQL uses documents or key-value.",
-  cloud: "Cloud computing provides resources on-demand. AWS, GCP, and Azure offer great services.",
-  bug: "Bugs are errors in code. Debug involves finding and fixing them.",
-  error: "Errors happen! Read error messages carefully - they tell you what's wrong.",
-  function: "Functions organize code into reusable blocks with inputs and outputs.",
-  class: "Classes define blueprints for objects in object-oriented programming.",
-  variable: "Variables store data values that can change during execution.",
-  loop: "Loops repeat code. Use for-loops for count, while-loops for conditions.",
+  database: "Databases store organized data. SQL databases use tables. NoSQL databases use documents.",
+  cloud: "Cloud computing provides on-demand resources. AWS, GCP, and Azure offer great services.",
+  bug: "Bugs are errors in code! Use console.log, debuggers, and error messages to find and fix them.",
+  error: "Error messages tell you what went wrong! Read them carefully - they indicate the file and line number.",
+  function: "Functions organize code into reusable blocks. They accept inputs and can return outputs.",
+  class: "Classes define blueprints for creating objects with specific properties and methods.",
+  variable: "Variables store data values that can change during execution. Use descriptive names.",
+  loop: "Loops repeat code. For-loops iterate a known number of times. While-loops repeat until a condition changes.",
   array: "Arrays hold ordered lists of items. Access by index starting at 0.",
-  dictionary: "Dictionaries map keys to values for fast lookups.",
-  string: "Strings are text data. You can concatenate, split, search.",
-  json: "JSON is a popular data format with key-value pairs.",
-  web: "The web uses HTTP to transfer content between servers and browsers.",
-  learn: "Learning takes practice! Start with basics and build projects.",
-  help: "I'm here to help! Ask about programming, AI, or any tech topic.",
-  who: "I'm AI-AGENT, an AI assistant built with my own custom n-gram model!",
-  name: "I'm AI-AGENT, your AI assistant running on a custom-trained model.",
-  start: "Great that you're starting! Pick a simple project and build it step by step.",
+  learn: "Learning takes practice! Start with small projects, make mistakes, and build every day.",
+  help: "I am here to help! Ask about programming, AI, web development, or any tech topic.",
+  who: "I am AI-AGENT, your AI assistant!",
+  name: "I am AI-AGENT, your personal AI assistant built with custom AI!",
 };
 
-function getSmartReply(message) {
+function getReply(message) {
   const m = message.toLowerCase();
   
-  // Check for specific keywords first
+  // Check keywords first for accurate info
   for (const [keyword, response] of Object.entries(KEYWORD_RESPONSES)) {
     if (m.includes(keyword)) return response;
   }
   
-  // Use your real AI model for generation!
-  try {
-    const generated = generateResponse(m, 20 + Math.floor(Math.random() * 15));
-    if (generated && generated.length > 10) return generated;
-  } catch (e) {
-    console.log('Generation error:', e.message);
-  }
-  
-  // Fallback responses if generation fails
-  const fallbacks = [
-    "That's interesting! Tell me more about what you're working on.",
-    "I'd love to hear more about your perspective.",
-    "Great question! Here's what I know...",
-    "Interesting point! Let me share my thoughts.",
-    "I'm curious - what specifically would you like to know?",
-  ];
-  return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  // Pick a random coherent response for general chat
+  return RESPONSE_POOL[Math.floor(Math.random() * RESPONSE_POOL.length)];
 }
 
 // ============================================
@@ -260,19 +124,17 @@ app.post("/chat", async (req, res) => {
     const cleanMessage = message.trim();
     history.push({ role: "user", text: cleanMessage });
 
-    // Use your AI to generate the reply!
-    const reply = getSmartReply(cleanMessage);
+    const reply = getReply(cleanMessage);
 
     history.push({ role: "assistant", text: reply });
     res.json({ reply, history });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Sorry, I had an issue generating a response." });
+    res.status(500).json({ error: "Oops, something went wrong!" });
   }
 });
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`AI-AGENT server running on port ${PORT}`);
-  console.log(`Your custom n-gram model loaded with ${vocab.length} vocabulary words`);
 });
