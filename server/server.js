@@ -13,11 +13,14 @@ app.use(express.static(sitePath));
 
 const chatHistory = new Map();
 
+const PYTHON_CMD = process.env.PYTHON_CMD || "python";
+
 function getModelReply(message) {
   return new Promise((resolve, reject) => {
-    const py = spawn("python3", [path.join(__dirname, "reply.py"), message], {
+    const py = spawn(PYTHON_CMD, [path.join(__dirname, "reply.py"), message], {
       cwd: __dirname,
-      stdio: ["ignore", "pipe", "pipe"]
+      stdio: ["ignore", "pipe", "pipe"],
+      env: process.env
     });
 
     let output = "";
