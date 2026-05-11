@@ -13,101 +13,286 @@ app.use(express.static(sitePath));
 const chatHistory = new Map();
 
 // ============================================
-// SMART AI - Picks coherent sentences from training data
+// SMART CONVERSATIONAL AI
 // ============================================
 
-// Complete coherent sentences to pick from
-const RESPONSE_POOL = [
-  // Greetings
-  "Hello! How are you doing today?",
-  "Hey there! Good to see you!",
-  "Hi! What would you like to discuss?",
-  "Welcome! How can I help you today?",
-  "Good to see you! What is on your mind?",
-  // AI & Tech
-  "AI creates systems that can learn from data. Machine learning is a subset of ai.",
-  "Neural networks learn from data. They are inspired by biological brains.",
-  "Transformers use attention to understand context. They revolutionized NLP!",
-  "Python is great for AI and data science. It has powerful libraries.",
-  "JavaScript powers the web. It runs in browsers and servers.",
-  "GitHub hosts code repositories. Git tracks all your code changes.",
-  "APIs connect applications. REST is a popular style.",
-  "JSON is a popular data format. It is easy to read and parse.",
-  "HTML creates web page structure. CSS makes it beautiful.",
-  "Functions organize code into reusable parts.",
-  "Variables store information for later use.",
-  "Loops repeat code many times.",
-  "Conditions make decisions in code.",
-  "Classes define new types of objects.",
-  "Inheritance reuses code in classes.",
-  "Databases store organized information.",
-  "Cloud computing is very convenient.",
-  "Servers listen for requests and respond.",
-  "Testing makes code reliable.",
-  "Bugs are errors in code that need fixing.",
-  "Debugging finds and fixes bugs.",
-  "Console logs help debug applications.",
-  // Encouragement
-  "That is a great question! Keep asking questions.",
-  "Interesting perspective! Tell me more.",
-  "I love that curiosity! Ask me anything.",
-  "Great way to think about it! What else?",
-  // Fallbacks
-  "Tell me more about what you are working on.",
-  "I am here to help! What would you like to know?",
-  "Good question! Here is what I know...",
-  "Let me think about that. What specifically?",
-];
-
-// Keyword-specific responses for accuracy
-const KEYWORD_RESPONSES = {
-  python: "Python is a versatile programming language great for AI, web development, data science, and automation. It has libraries like NumPy, PyTorch, Flask, and Django.",
-  javascript: "JavaScript powers the web! It is used for interactive websites, web apps, mobile apps, and servers with Node.js.",
-  html: "HTML (HyperText Markup Language) provides the structure of web pages using semantic tags like <header>, <main>, <article>.",
-  css: "CSS (Cascading Style Sheets) styles web pages with colors, layouts, fonts, animations using Flexbox and Grid.",
-  ai: "AI (Artificial Intelligence) creates systems that can learn, reason, and make decisions. Machine learning learns from data.",
-  "machine learning": "Machine learning teaches computers to learn from data rather than explicit programming. Types include supervised, unsupervised, and reinforcement learning.",
-  neural: "Neural networks are inspired by biological brains. They have layers of nodes that learn patterns through training.",
-  transformer: "Transformers use attention mechanisms to understand context. They enabled GPT, BERT, and modern language models!",
-  gpt: "GPT (Generative Pre-trained Transformer) is OpenAIs large language model that generates human-like text.",
-  github: "GitHub hosts code repositories and enables collaboration through pull requests, issues, and code review.",
-  git: "Git tracks code changes. Key commands: git add, git commit, git push, git pull, git merge.",
-  api: "APIs (Application Programming Interfaces) let applications communicate. REST uses GET, POST, PUT, DELETE.",
-  http: "HTTP is the web protocol. GET retrieves data, POST creates data, PUT updates, DELETE removes.",
-  server: "Servers provide services to clients. They listen on ports and respond to requests.",
-  database: "Databases store organized data. SQL databases use tables. NoSQL databases use documents.",
-  cloud: "Cloud computing provides on-demand resources. AWS, GCP, and Azure offer great services.",
-  bug: "Bugs are errors in code! Use console.log, debuggers, and error messages to find and fix them.",
-  error: "Error messages tell you what went wrong! Read them carefully - they indicate the file and line number.",
-  function: "Functions organize code into reusable blocks. They accept inputs and can return outputs.",
-  class: "Classes define blueprints for creating objects with specific properties and methods.",
-  variable: "Variables store data values that can change during execution. Use descriptive names.",
-  loop: "Loops repeat code. For-loops iterate a known number of times. While-loops repeat until a condition changes.",
-  array: "Arrays hold ordered lists of items. Access by index starting at 0.",
-  learn: "Learning takes practice! Start with small projects, make mistakes, and build every day.",
-  help: "I am here to help! Ask about programming, AI, web development, or any tech topic.",
-  who: "I am AI-AGENT, your AI assistant!",
-  name: "I am AI-AGENT, your personal AI assistant built with custom AI!",
-};
-
-function getReply(message) {
+// Intent recognition - what does the user want?
+function detectIntent(message) {
   const m = message.toLowerCase();
   
-  // Check for greetings FIRST to avoid substring bugs
+  // Code generation requests
+  if (m.match(/make\s+(me\s+)?(a\s+)?(lua|python|javascript|html|css|sql|api|script)/i) ||
+      m.match(/write\s+(me\s+)?(a\s+)?(lua|python|javascript|html|css|sql|api|script)/i) ||
+      m.match(/create\s+(me\s+)?(a\s+)?(lua|python|javascript|html|css|sql|api|script)/i) ||
+      m.includes("code for") || m.includes("write code")) {
+    return "generate";
+  }
+  
+  // Debug/help requests  
+  if (m.includes("debug") || m.includes("fix") || m.includes("error") || 
+      m.includes("not working") || m.includes("bug")) {
+    return "debug";
+  }
+  
+  // Learning requests
+  if (m.match(/how\s+(do|does|to|can)/i) || m.match(/what\s+(is|are|does)/i) ||
+      m.match(/why\s+(does|is|can)/i) || m.match(/explain/i) || m.includes("learn about")) {
+    return "learn";
+  }
+  
+  // Greetings
   if (m.startsWith("hello") || m.startsWith("hi") || m.startsWith("hey") || 
-      m.startsWith("howdy") || m.startsWith("greetings")) {
-    return RESPONSE_POOL[Math.floor(Math.random() * 5)]; // Return greeting responses
+      m.startsWith("howdy") || m.startsWith("greetings") || m.startsWith("good")) {
+    return "greet";
   }
   
-  // Check keywords for accurate technical info
-  for (const [keyword, response] of Object.entries(KEYWORD_RESPONSES)) {
-    // Only match whole words to avoid substring matching
-    const wordRegex = new RegExp("\\b" + keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + "\\b");
-    if (wordRegex.test(m)) return response;
+  // Thanks
+  if (m.includes("thank") || m.includes("thanks") || m.includes("appreciate")) {
+    return "thanks";
   }
   
-  // Pick a random coherent response for general chat
-  return RESPONSE_POOL[Math.floor(Math.random() * RESPONSE_POOL.length)];
+  // Goodbye
+  if (m.includes("bye") || m.includes("goodbye") || m.includes("see you") || m.includes("later")) {
+    return "bye";
+  }
+  
+  // Help request
+  if (m.match(/^help$/i) || m.includes("what can you do")) {
+    return "help";
+  }
+  
+  // Who are you
+  if (m.includes("who are you") || m.includes("what are you") || m.includes("your name")) {
+    return "identity";
+  }
+  
+  // Default to conversation
+  return "chat";
+}
+
+// Code generators for common requests
+function generateCode(language, request) {
+  const templates = {
+    lua: {
+      fly: `-- Fly script for Roblox games
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+local flying = false
+local speed = 50
+
+local function startFly()
+    flying = true
+    local velocity = Instance.new("BodyVelocity")
+    velocity.MaxForce = Vector3.new(400000, 400000, 400000)
+    velocity.Velocity = Vector3.new(0, speed, 0)
+    velocity.Parent = character.HumanoidRootPart
+end
+
+local function stopFly()
+    flying = false
+    if character.HumanoidRootPart:FindFirstChild("BodyVelocity") then
+        character.HumanoidRootPart.BodyVelocity:Destroy()
+    end
+end
+
+-- Toggle fly with E key
+game:GetService("UserInputService").InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.E then
+        if flying then stopFly() else startFly() end
+    end
+end)`,
+      },
+    python: {
+      api: `# Simple Flask API
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+
+@app.route("/api/hello")
+def hello():
+    return jsonify({"message": "Hello, World!"})
+
+@app.route("/api/data", methods=["GET", "POST"])
+def data():
+    if request.method == "POST":
+        return jsonify({"received": request.json})
+    return jsonify({"data": []})
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)`,
+      },
+      bot: `# Discord Bot
+import discord
+from discord.ext import commands
+
+bot = commands.Bot(command_prefix="!")
+
+@bot.command()
+async def hello(ctx):
+    await ctx.send("Hello!")
+
+@bot.event
+async def on_ready():
+    print(f"Logged in as {bot.user}")
+
+bot.run("YOUR_TOKEN")`,
+      },
+    },
+    javascript: {
+      api: `// Express API Server
+const express = require("express");
+const app = express();
+app.use(express.json());
+
+app.get("/api/hello", (req, res) => {
+  res.json({ message: "Hello, World!" });
+});
+
+app.post("/api/data", (req, res) => {
+  res.json({ received: req.body });
+});
+
+app.listen(3000, () => console.log("Server running on port 3000"));`,
+      website: `// Simple Website
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Website</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Welcome!</h1>
+  <p>This is my website.</p>
+  <script>
+    console.log("Hello from JavaScript!");
+  </script>
+</body>
+</html>`,
+      },
+    },
+    html: {
+      basic: `<!DOCTYPE html>
+<html>
+<head>
+  <title>My Page</title>
+</head>
+<body>
+  <h1>Hello World!</h1>
+</body>
+</html>`,
+    },
+  };
+  
+  // Check for specific requests
+  if (language === "lua") {
+    if (request.includes("fly")) return templates.lua.fly;
+    return templates.lua.api;
+  }
+  if (language === "python") {
+    if (request.includes("api")) return templates.python.api;
+    if (request.includes("bot")) return templates.python.bot;
+    return templates.python.api;
+  }
+  if (language === "javascript" || language === "js") {
+    if (request.includes("api")) return templates.javascript.api;
+    if (request.includes("website") || request.includes("page")) return templates.javascript.website;
+    return templates.javascript.api;
+  }
+  if (language === "html") return templates.html.basic;
+  
+  return "I can generate Lua, Python, JavaScript, and HTML code. What do you need?";
+}
+
+// Main response generator
+function getReply(message) {
+  const intent = detectIntent(message);
+  const m = message.toLowerCase();
+  
+  // Greeting
+  if (intent === "greet") {
+    const greetings = [
+      "Hey! What are you working on?",
+      "Hi there! Want to code something?",
+      "Hello! I can help you build things. What do you want to make?",
+      "Hey! Need help with code, or want to learn something?",
+    ];
+    return greetings[Math.floor(Math.random() * greetings.length)];
+  }
+  
+  // Code generation
+  if (intent === "generate") {
+    // Detect language
+    let lang = "javascript";
+    if (m.includes("lua")) lang = "lua";
+    else if (m.includes("python")) lang = "python";
+    else if (m.includes("html")) lang = "html";
+    else if (m.includes("js")) lang = "javascript";
+    
+    const code = generateCode(lang, m);
+    return `Here's ${lang} code for that:\n\n\`\`\`${lang === "lua" ? "lua" : lang === "js" ? "javascript" : lang}\n${code}\n\`\`\`\n\nWant me to explain how it works?`;
+  }
+  
+  // Learning/explanation
+  if (intent === "learn") {
+    const explanations = {
+      "python": "Python is a versatile programming language. Key features: easy syntax, dynamically typed, great libraries (NumPy, PyTorch, Flask). Used for AI, web, data science.",
+      "javascript": "JavaScript runs the web! In browsers and servers (Node.js). Creates interactive websites, APIs, mobile apps. Uses async/await, promises, and has npm for packages.",
+      "html": "HTML structures web pages. Uses tags like <div>, <p>, <a>. CSS styles it, JavaScript adds interactivity.",
+      "css": "CSS styles web pages - colors, fonts, layouts. Flexbox and Grid are powerful layout systems.",
+      "api": "APIs (Application Programming Interfaces) let programs talk. REST uses HTTP methods: GET (read), POST (create), PUT (update), DELETE (remove).",
+      "github": "GitHub hosts code. Use git add, commit, push, pull. Pull requests review code before merging.",
+      "git": "Git tracks code changes. Commands: git init, git add, git commit -m 'message', git push, git pull.",
+      "ai": "AI creates systems that learn. Machine learning trains on data. Neural networks use layers. Transformers power modern AI like GPT.",
+      "machine learning": "ML teaches computers from data. Types: supervised (labeled data), unsupervised (find patterns), reinforcement (learning from rewards).",
+      "neural": "Neural networks are inspired by brains. Layers of 'neurons' learn patterns. Trained by adjusting weights to minimize loss.",
+      "transformer": "Transformers use 'attention' to understand context. They process all words at once, enabling GPT and modern AI.",
+    };
+    
+    for (const [topic, explanation] of Object.entries(explanations)) {
+      if (m.includes(topic)) return explanation;
+    }
+    
+    return "What specifically do you want to learn about? I can explain Python, JavaScript, HTML, CSS, APIs, GitHub, Git, AI, machine learning, neural networks, transformers, and more!";
+  }
+  
+  // Identity
+  if (intent === "identity") {
+    return "I'm AI-AGENT, your AI assistant! I can help you code, explain tech concepts, debug issues, and answer questions. What do you need?";
+  }
+  
+  // Help
+  if (intent === "help") {
+    return "I can help you with:\n- Writing code (Lua, Python, JavaScript, HTML)\n- Explaining tech concepts\n- Debugging issues\n- Learning programming\n\nJust tell me what you need!";
+  }
+  
+  // Thanks
+  if (intent === "thanks") {
+    return "You're welcome! Anything else you need?";
+  }
+  
+  // Goodbye
+  if (intent === "bye") {
+    return "See you later! Happy coding!";
+  }
+  
+  // Debug help
+  if (intent === "debug") {
+    return "I'd be happy to help debug! Can you share the code and what error you're seeing?";
+  }
+  
+  // Chat - try to be helpful
+  const chatResponses = [
+    "Tell me more about what you're building!",
+    "What kind of project are you working on?",
+    "I can generate code, explain concepts, or help debug. What do you need?",
+    "Want to build something? Tell me what!",
+    "What are you trying to accomplish?",
+  ];
+  
+  return chatResponses[Math.floor(Math.random() * chatResponses.length)];
 }
 
 // ============================================
@@ -138,11 +323,11 @@ app.post("/chat", async (req, res) => {
     res.json({ reply, history });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Oops, something went wrong!" });
+    res.status(500).json({ error: "Oops! Something went wrong." });
   }
 });
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`AI-AGENT server running on port ${PORT}`);
+  console.log(`AI-AGENT running on port ${PORT}`);
 });
