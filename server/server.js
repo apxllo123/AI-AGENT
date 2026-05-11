@@ -12,7 +12,7 @@ app.use(express.static(sitePath));
 
 const chatHistory = new Map();
 
-const FLASK_URL = process.env.FLASK_URL || "http://127.0.0.1:5000";
+const FLASK_URL = process.env.FLASK_URL || "http://127.0.0.1:8080";
 
 async function getModelReply(message) {
   const response = await fetch(`${FLASK_URL}/reply`, {
