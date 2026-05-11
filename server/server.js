@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const { spawn } = require("child_process");
 
 const app = express();
 
@@ -13,39 +12,24 @@ app.use(express.static(sitePath));
 
 const chatHistory = new Map();
 
-const PYTHON_CMD = process.env.PYTHON_CMD || "python";
+const FLASK_URL = process.env.FLASK_URL || "http://127.0.0.1:5000";
 
-function getModelReply(message) {
-  return new Promise((resolve, reject) => {
-    const py = spawn(PYTHON_CMD, [path.join(__dirname, "reply.py"), message], {
-      cwd: __dirname,
-      stdio: ["ignore", "pipe", "pipe"],
-      env: process.env
-    });
-
-    let output = "";
-    let error = "";
-
-    py.stdout.on("data", (data) => {
-      output += data.toString();
-    });
-
-    py.stderr.on("data", (data) => {
-      error += data.toString();
-    });
-
-    py.on("error", (err) => {
-      reject(err);
-    });
-
-    py.on("close", (code) => {
-      if (code !== 0) {
-        reject(new Error(error || `Python exited with code ${code}`));
-        return;
-      }
-      resolve(output.trim() || "I’m not sure how to reply to that.");
-    });
+async function getModelReply(message) {
+  const response = await fetch(`${FLASK_URL}/reply`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ message }),
   });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Flask service error");
+  }
+
+  return data.reply || "I’m not sure how to reply to that.";
 }
 
 app.get("/", (req, res) => {
