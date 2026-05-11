@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const fs = require("fs");
+const http = require("http");
 
 const app = express();
 app.use(cors());
@@ -12,46 +12,49 @@ app.use(express.static(sitePath));
 
 const chatHistory = new Map();
 
-// ==============================
-// JARVIS AI SYSTEM
-// ==============================
+// Try to connect to local Ollama
+const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
+let useOllama = false;
 
-let jarvisState = {
-  name: "Jarvis",
-  userName: null,
+// Check if Ollama is available
+async function checkOllama() {
+  try {
+    const response = await fetch(OLLAMA_URL + "/api/tags", { 
+      method: "POST",
+      signal: { signal: false }
+    });
+    useOllama = response.ok;
+    console.log("Ollama:", useOllama ? "Connected" : "Not available");
+  } catch (e) {
+    useOllama = false;
+    console.log("Ollama: Not available");
+  }
+}
+
+checkOllama();
+
+// Jarvis personality
+const KNOWLEDGE = {
+  python: "Python: versatile language. Easy syntax, great for AI, web, data science.",
+  javascript: "JavaScript: runs the web! In browsers and Node.js.",
+  html: "HTML: structures web pages.",
+  ai: "AI = Artificial Intelligence. Creates systems that learn.",
+  "machine learning": "ML teaches computers from data.",
+  "neural network": "Neural networks: layers that learn patterns.",
+  transformer: "Transformers: use attention. Power GPT, BERT!",
+  github: "GitHub: hosts code. Use git add, commit, push, pull.",
+  api: "APIs: let programs communicate. REST has GET, POST, PUT, DELETE.",
 };
-
-const MEMORY_FILE = path.join(__dirname, "../data", "jarvis_memory.json");
-
-function loadMemory() {
-  try {
-    if (fs.existsSync(MEMORY_FILE)) {
-      const data = JSON.parse(fs.readFileSync(MEMORY_FILE, "utf-8"));
-      Object.assign(jarvisState, data);
-    }
-  } catch (e) {
-    console.log("Memory:", e.message);
-  }
-}
-
-function saveMemory() {
-  try {
-    fs.writeFileSync(MEMORY_FILE, JSON.stringify(jarvisState, null, 2));
-  } catch (e) {
-    console.log("Save:", e.message);
-  }
-}
 
 function detectIntent(message) {
   const m = message.toLowerCase();
-  if (m.startsWith("hello") || m.startsWith("hi") || m.startsWith("hey")) return "greet";
+  if (m.startsWith("hello")) return "greet";
   if (m.includes("who are you")) return "identity";
   if (m.includes("help")) return "help";
   if (m.includes("status")) return "status";
   if (m.includes("thank")) return "thanks";
-  if (m.includes("bye")) return "bye";
   if (m.includes("my name")) return "personal";
-  if (m.match(/make|write|create|code|script/)) return "code";
+  if (m.match(/make|write|code|script/)) return "code";
   if (m.match(/what is|how does|explain/)) return "learn";
   return "chat";
 }
@@ -67,85 +70,79 @@ function generateCode(request) {
   if (m.includes("javascript") || m.includes("js")) {
     return "Express JS:\n\n```javascript\nconst express = require('express');\napp = express();\napp.get('/', (r,s) => s.send('Hi'));\n```";
   }
-  if (m.includes("html")) {
-    return "HTML:\n\n```html\n<h1>Hello</h1>\n```";
-  }
-  return "I do Lua, Python, JS, HTML";
+  return "What type? Lua, Python, JS, HTML?";
 }
 
-const knowledge = {
-  python: "Python: easy syntax, great for AI/web. Libraries: NumPy, PyTorch, Flask.",
-  javascript: "JavaScript: runs web! Used in browsers and Node.js.",
-  html: "HTML: structures web pages with tags.",
-  ai: "AI: creates systems that learn. ML trains from data.",
-  "machine learning": "ML: teaches computers from data. Types: supervised, unsupervised.",
-  "neural network": "Neural networks: layers that learn patterns.",
-  transformer: "Transformers: use attention. Power GPT, BERT!",
-  github: "GitHub: hosts code. git add, commit, push, pull.",
-  api: "APIs: let programs communicate. REST: GET/POST/PUT/DELETE.",
-};
-
-function getJarvisResponse(message, userId) {
+function getReply(message, userId) {
   const intent = detectIntent(message);
   const m = message.toLowerCase();
-  
-  if (!chatHistory.has(userId)) chatHistory.set(userId, []);
   
   if (intent === "greet") {
     return ["Good to see you, sir.", "At your service.", "Ready. What's on?"][Math.floor(Math.random() * 3)];
   }
-  
-  if (intent === "identity") {
-    let r = "I am Jarvis, your AI.";
-    if (jarvisState.userName) r += " You are " + jarvisState.userName;
-    return r;
-  }
-  
-  if (intent === "status") {
-    return jarvisState.userName ? "I know you, " + jarvisState.userName + "." : "Say my name is [name].";
-  }
-  
-  if (intent === "help") return "I code, explain, remember.";
-  
+  if (intent === "identity") return "I am JARVIS, your AI. I can code, explain, remember.";
+  if (intent === "status") return useOllama ? "Ollama connected. Full AI active." : "Running in limited mode.";
+  if (intent === "help") return "I can: code, explain, remember your name.";
   if (intent === "code") return generateCode(message);
-  
   if (intent === "learn") {
-    for (const [k, v] of Object.entries(knowledge)) {
+    for (const [k, v] of Object.entries(KNOWLEDGE)) {
       if (m.includes(k)) return v;
     }
     return "I know Python, JS, AI, ML, more.";
   }
-  
   if (intent === "personal") {
     const match = message.match(/my name is (\w+)/i);
-    if (match) {
-      jarvisState.userName = match[1];
-      saveMemory();
-      return "Got it, " + jarvisState.userName + "!";
-    }
+    if (match) return `Got it, ${match[1]}!`;
   }
-  
   if (intent === "thanks") return "Welcome, sir.";
-  if (intent === "bye") return "Later!";
   
-  return "Tell me more!";
+  return "Tell me more! What do you need?";
 }
 
 app.get("/", (req, res) => res.sendFile(path.join(sitePath, "index.html")));
 
-app.post("/chat", (req, res) => {
+app.post("/chat", async (req, res) => {
   const { message, userId = "default" } = req.body;
   if (!message) return res.status(400).json({error: "Message required"});
-
   if (!chatHistory.has(userId)) chatHistory.set(userId, []);
   const history = chatHistory.get(userId);
   history.push({role: "user", text: message});
 
-  const reply = getJarvisResponse(message, userId);
+  let reply;
+  
+  // Try Ollama first if available
+  if (useOllama) {
+    try {
+      const response = await fetch(OLLAMA_URL + "/api/chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          model: "llama3",
+          messages: [
+            {role: "system", content: "You are JARVIS, a helpful AI."},
+            ...history.slice(-4),
+            {role: "user", content: message}
+          ],
+          stream: false
+        }),
+        signal: AbortSignal.timeout(60000)
+      });
+      const data = await response.json();
+      reply = data.message?.content;
+    } catch (e) {
+      console.log("Ollama error:", e.message);
+      useOllama = false;
+    }
+  }
+  
+  // Fallback to local brain
+  if (!reply) {
+    reply = getReply(message, userId);
+  }
+  
   history.push({role: "assistant", text: reply});
-  res.json({reply, history});
+  res.json({reply, history, ollama: useOllama});
 });
 
-loadMemory();
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => console.log("JARVIS on " + PORT));
