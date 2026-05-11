@@ -93,9 +93,17 @@ const KEYWORD_RESPONSES = {
 function getReply(message) {
   const m = message.toLowerCase();
   
-  // Check keywords first for accurate info
+  // Check for greetings FIRST to avoid substring bugs
+  if (m.startsWith("hello") || m.startsWith("hi") || m.startsWith("hey") || 
+      m.startsWith("howdy") || m.startsWith("greetings")) {
+    return RESPONSE_POOL[Math.floor(Math.random() * 5)]; // Return greeting responses
+  }
+  
+  // Check keywords for accurate technical info
   for (const [keyword, response] of Object.entries(KEYWORD_RESPONSES)) {
-    if (m.includes(keyword)) return response;
+    // Only match whole words to avoid substring matching
+    const wordRegex = new RegExp("\\b" + keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + "\\b");
+    if (wordRegex.test(m)) return response;
   }
   
   // Pick a random coherent response for general chat
