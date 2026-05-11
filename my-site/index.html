@@ -5,15 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JARVIS - AI Assistant</title>
     <link rel="stylesheet" href="css/jarvis.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-    <style>
-        /* Override some styles for this page */
-        .font-import { font-family: 'Orbitron', sans-serif; }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="jarvis-ui">
-        <!-- Header -->
         <header id="jarvis-header">
             <div id="jarvis-header-content">
                 <div id="jarvis-logo">
@@ -31,17 +26,16 @@
                 </div>
                 <div id="jarvis-status">
                     <span class="status-dot"></span>
-                    <span>ONLINE</span>
+                    <span id="status-text">ONLINE</span>
                 </div>
             </div>
         </header>
 
-        <!-- Chat -->
         <main id="jarvis-chat">
             <div id="chat-container">
                 <div id="chat-header">
                     <span id="chat-title">COMMUNICATION LINK</span>
-                    <span id="model-indicator">llama3</span>
+                    <span id="model-indicator">ACTIVE</span>
                 </div>
                 
                 <div id="chat-messages">
@@ -67,63 +61,42 @@
         const chatMessages = document.getElementById('chat-messages');
         const loading = document.getElementById('loading');
         const modelIndicator = document.getElementById('model-indicator');
+        const statusText = document.getElementById('status-text');
 
-        let chatHistory = [];
+        // Use current page as API endpoint
+        const API_URL = '/chat';
 
-        // Auto-detect task type
-        function detectTask(message) {
-            const m = message.toLowerCase();
-            if (m.match(/code|script|write|program|function|debug|fix|python|lua|javascript|html|css|api/)) {
-                return 'qwen2.5-coder';
-            }
-            return 'llama3';
-        }
-
-        // Send message to local Jarvis
         async function sendMessage(message) {
             if (!message.trim()) return;
 
-            // Add user message
             addMessage(message, 'sent');
             chatInput.value = '';
-
-            // Show loading
             loading.style.display = 'block';
             chatSubmit.disabled = true;
+            statusText.textContent = 'PROCESSING';
 
             try {
-                const task = detectTask(message);
-                modelIndicator.textContent = task;
-
-                const response = await fetch('http://localhost:11434/api/chat', {
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model: task,
-                        messages: [
-                            { role: 'system', content: 'You are Jarvis, a helpful AI. Be concise and professional.' },
-                            ...chatHistory.slice(-6),
-                            { role: 'user', content: message }
-                        ],
-                        stream: false
-                    }),
-                    signal: AbortSignal.timeout(120000)
+                    body: JSON.stringify({ message: message }),
+                    signal: AbortSignal.timeout(30000)
                 });
 
                 const data = await response.json();
-                const reply = data.message?.content || 'I apologize, sir. I encountered an issue processing that request.';
-
+                const reply = data.reply || 'I apologize, sir. I encountered an issue.';
+                
                 addMessage(reply, 'received');
-                chatHistory.push({ role: 'user', content: message });
-                chatHistory.push({ role: 'assistant', content: reply });
+                statusText.textContent = 'ONLINE';
 
             } catch (error) {
                 let msg = 'Connection failed, sir. ';
                 if (error.name === 'AbortError') {
                     msg += 'The request timed out. ';
                 }
-                msg += 'Is Ollama running? (ollama serve)';
+                msg += 'Please try again.';
                 addMessage(msg, 'received');
+                statusText.textContent = 'ERROR';
             }
 
             loading.style.display = 'none';
@@ -137,18 +110,17 @@
             // Format code blocks
             text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
             text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+            text = text.replace(/\n/g, '<br>');
             div.innerHTML = text;
             chatMessages.appendChild(div);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // Submit on button click
         chatSubmit.addEventListener('click', (e) => {
             e.preventDefault();
             sendMessage(chatInput.value);
         });
 
-        // Submit on Enter
         chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -156,7 +128,6 @@
             }
         });
 
-        // Focus input
         chatInput.focus();
     </script>
 </body>
