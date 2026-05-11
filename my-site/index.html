@@ -1,134 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JARVIS - AI Assistant</title>
-    <link rel="stylesheet" href="css/jarvis.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI-AGENT</title>
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/header.css" />
+  <link rel="stylesheet" href="./css/hero.css" />
+  <link rel="stylesheet" href="./css/cta.css" />
+  <link rel="stylesheet" href="./css/chat.css" />
+  <link rel="stylesheet" href="./css/responsive.css" />
 </head>
 <body>
-    <div id="jarvis-ui">
-        <header id="jarvis-header">
-            <div id="jarvis-header-content">
-                <div id="jarvis-logo">
-                    <div class="logo-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <circle cx="12" cy="12" r="4"/>
-                            <line x1="12" y1="2" x2="12" y2="6"/>
-                            <line x1="12" y1="18" x2="12" y2="22"/>
-                            <line x1="2" y1="12" x2="6" y2="12"/>
-                            <line x1="18" y1="12" x2="22" y2="12"/>
-                        </svg>
-                    </div>
-                    <span class="logo-text">JARVIS</span>
-                </div>
-                <div id="jarvis-status">
-                    <span class="status-dot"></span>
-                    <span id="status-text">ONLINE</span>
-                </div>
-            </div>
-        </header>
+  <canvas id="canvas"></canvas>
 
-        <main id="jarvis-chat">
-            <div id="chat-container">
-                <div id="chat-header">
-                    <span id="chat-title">COMMUNICATION LINK</span>
-                    <span id="model-indicator">ACTIVE</span>
-                </div>
-                
-                <div id="chat-messages">
-                    <div class="message received">Good evening, sir. Systems online and operational. How may I assist you?</div>
-                </div>
+  <div id="ui">
+    <header id="site-header">
+      <div id="site-header__container">
+        <a id="site-header__logo" href="/">
+          <span class="o-icon">◆</span>
+          <span>AI-AGENT</span>
+        </a>
 
-                <div id="loading">
-                    <div class="loading-spinner"></div>
-                    <span>Processing request...</span>
-                </div>
+        <nav id="site-header__nav">
+          <ul id="site-header__nav-list-01">
+            <li class="site-header__nav-item"><a href="#home-hero">Home</a></li>
+            <li class="site-header__nav-item"><a href="#home-cta">CTA</a></li>
+            <li class="site-header__nav-item"><a href="#chat-panel">Chat</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
 
-                <form id="chat-input-container">
-                    <input type="text" id="chat-input" placeholder="Enter command or message..." autocomplete="off" autofocus>
-                    <button type="submit" id="chat-submit">SEND</button>
-                </form>
-            </div>
-        </main>
-    </div>
+    <main>
+      <section id="home-hero">
+        <div id="home-hero__wrapper" class="o-container">
+          <div id="home-hero__top">
+            <a id="home-hero__new-badge" href="#" aria-label="New announcement">
+              <span id="home-hero__new-badge-tag">New</span>
+              <span>Introducing AI-AGENT</span>
+            </a>
 
-    <script>
-        const chatInput = document.getElementById('chat-input');
-        const chatSubmit = document.getElementById('chat-submit');
-        const chatMessages = document.getElementById('chat-messages');
-        const loading = document.getElementById('loading');
-        const modelIndicator = document.getElementById('model-indicator');
-        const statusText = document.getElementById('status-text');
+            <h1 id="home-hero__title">AI-AGENT Your AI assistant is live.</h1>
+          </div>
 
-        // Use current page as API endpoint
-        const API_URL = '/chat';
+          <figure id="home-hero__media">
+            <img src="https://via.placeholder.com/1200x700" alt="Preview" />
+          </figure>
+        </div>
+      </section>
 
-        async function sendMessage(message) {
-            if (!message.trim()) return;
+      <section id="home-cta" class="o-container">
+        <div id="home-cta__copy">
+          <p id="home-cta__caption">Chat</p>
+          <h2 id="home-cta__title">If you can see this text, the page is working.</h2>
+        </div>
 
-            addMessage(message, 'sent');
-            chatInput.value = '';
-            loading.style.display = 'block';
-            chatSubmit.disabled = true;
-            statusText.textContent = 'PROCESSING';
+        <a id="home-cta__button" href="#" aria-label="Start chat">Start Chat</a>
 
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message }),
-                    signal: AbortSignal.timeout(30000)
-                });
+        <div class="logo-grid-wrapper">
+          <div class="logo-grid">
+            <div class="logo-grid-item"><span class="o-icon">A</span></div>
+            <div class="logo-grid-item"><span class="o-icon">I</span></div>
+            <div class="logo-grid-item"><span class="o-icon">-</span></div>
+            <div class="logo-grid-item"><span class="o-icon">G</span></div>
+          </div>
+        </div>
+      </section>
 
-                const data = await response.json();
-                const reply = data.reply || 'I apologize, sir. I encountered an issue.';
-                
-                addMessage(reply, 'received');
-                statusText.textContent = 'ONLINE';
+      <section id="chat-panel" class="o-container" style="display:none;">
+        <div id="chat-shell">
+          <div id="chat-messages" aria-live="polite"></div>
 
-            } catch (error) {
-                let msg = 'Connection failed, sir. ';
-                if (error.name === 'AbortError') {
-                    msg += 'The request timed out. ';
-                }
-                msg += 'Please try again.';
-                addMessage(msg, 'received');
-                statusText.textContent = 'ERROR';
-            }
+          <form id="chat-form">
+            <input id="chat-input" type="text" placeholder="Type a message..." autocomplete="off" />
+            <button type="submit">Send</button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
 
-            loading.style.display = 'none';
-            chatSubmit.disabled = false;
-            chatInput.focus();
-        }
-
-        function addMessage(text, type) {
-            const div = document.createElement('div');
-            div.className = `message ${type}`;
-            // Format code blocks
-            text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-            text = text.replace(/\n/g, '<br>');
-            div.innerHTML = text;
-            chatMessages.appendChild(div);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        chatSubmit.addEventListener('click', (e) => {
-            e.preventDefault();
-            sendMessage(chatInput.value);
-        });
-
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                sendMessage(chatInput.value);
-            }
-        });
-
-        chatInput.focus();
-    </script>
+  <script src="./js/chat.js" defer></script>
 </body>
 </html>
