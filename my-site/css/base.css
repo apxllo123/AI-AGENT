@@ -1,13 +1,10 @@
 :root {
-  --bg: #f5f5f5;
-  --bg-soft: #ffffff;
-  --text: #111111;
-  --muted: rgba(17, 17, 17, 0.72);
-  --line: rgba(0, 0, 0, 0.12);
-  --accent: #ffffff;
-  --accent-dark: #e8e8e8;
-  --max: 1240px;
-  --radius: 18px;
+  --bg: #0f0f1a;
+  --bg-soft: #1a1a2e;
+  --text: #ffffff;
+  --text-muted: #a0a0b0;
+  --accent: #667eea;
+  --accent-light: #764ba2;
 }
 
 * {
@@ -16,17 +13,30 @@
 
 html {
   scroll-behavior: smooth;
-  min-height: 100%;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
-  overflow-x: hidden;
   line-height: 1.5;
+}
+
+/* Gradient background */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(102, 126, 234, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(118, 75, 162, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 a {
@@ -34,60 +44,25 @@ a {
   text-decoration: none;
 }
 
-img {
-  display: block;
-  max-width: 100%;
-}
-
 button {
   font: inherit;
+  cursor: pointer;
 }
 
 #ui {
   position: relative;
   z-index: 2;
-  width: 100%;
-  min-height: 100vh;
-  isolation: isolate;
 }
 
 .o-container {
-  width: min(100% - 32px, var(--max));
+  max-width: 1200px;
   margin: 0 auto;
-}
-
-.o-grid {
-  display: grid;
-  gap: 24px;
-}
-
-.o-section {
-  padding: 24px 0;
+  padding: 0 16px;
 }
 
 .o-text-gradient {
-  background: linear-gradient(90deg, #111111 0%, #4f5cff 55%, #00a8c6 100%);
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-}
-
-.o-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.o-icon svg {
-  width: 100%;
-  height: 100%;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-#canvas {
-  display: none;
 }
