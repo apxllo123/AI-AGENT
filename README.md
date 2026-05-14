@@ -43,7 +43,8 @@ Bash# Install Ollama → https://ollama.com
 ollama run qwen2.5-coder
 The agent will automatically use the strong model when available.
 
-📁 Project Structure
+
+### 2. 📁 Project Structure
 textAI-AGENT/
 ├── data/                  # Your training corpus (tiny_data.txt)
 ├── artifacts/             # Trained model + tokenizer (auto-generated)
