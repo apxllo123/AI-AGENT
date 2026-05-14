@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def softmax(x, axis=-1):
     x = x - x.max(axis=axis, keepdims=True)
     expx = np.exp(x)
@@ -8,116 +7,113 @@ def softmax(x, axis=-1):
 
 
 class TinyTransformer:
-    def __init__(self, vocab_size, n_embd=64, block_size=32, seed=42):
+    def __init__(self, vocab_size, n_embd=96, block_size=64, n_layer=2, seed=42):
         np.random.seed(seed)
         self.vocab_size = vocab_size
         self.n_embd = n_embd
         self.block_size = block_size
-
+        self.n_layer = n_layer
+        
+        # Token + Position embeddings
         self.tok_emb = np.random.normal(0, 0.02, (vocab_size, n_embd))
         self.pos_emb = np.random.normal(0, 0.02, (block_size, n_embd))
-        self.W1 = np.random.normal(0, 0.02, (n_embd, n_embd))
-        self.b1 = np.zeros((n_embd,))
-        self.W2 = np.random.normal(0, 0.02, (n_embd, vocab_size))
-        self.b2 = np.zeros((vocab_size,))
+        
+        # Simple multi-layer feedforward
+        self.layers = []
+        for _ in range(n_layer):
+            layer = {
+                'W1': np.random.normal(0, 0.02, (n_embd, n_embd * 2)),
+                'b1': np.zeros((n_embd * 2,)),
+                'W2': np.random.normal(0, 0.02, (n_embd * 2, n_embd)),
+                'b2': np.zeros((n_embd,)),
+            }
+            self.layers.append(layer)
+        
+        # Output head
+        self.W_out = np.random.normal(0, 0.02, (n_embd, vocab_size))
+        self.b_out = np.zeros((vocab_size,))
 
     def forward(self, idx, targets=None):
         B, T = idx.shape
         assert T <= self.block_size
-
-        x = self.tok_emb[idx] + self.pos_emb[np.arange(T)][None, :, :]
-        h = np.tanh(np.matmul(x, self.W1) + self.b1)
-        logits = np.matmul(h, self.W2) + self.b2
-
+        
+        x = self.tok_emb[idx] + self.pos_emb[:T]
+        
+        # Multi-layer processing
+        for layer in self.layers:
+            h = np.tanh(np.matmul(x, layer['W1']) + layer['b1'])
+            x = np.tanh(np.matmul(h, layer['W2']) + layer['b2']) + x  # residual
+        
+        logits = np.matmul(x, self.W_out) + self.b_out
+        
         loss = None
         if targets is not None:
             logits_flat = logits.reshape(-1, self.vocab_size)
             targets_flat = targets.reshape(-1)
-
             probs = softmax(logits_flat, axis=-1)
             probs = np.clip(probs, 1e-12, None)
             loss = -np.log(probs[np.arange(len(targets_flat)), targets_flat]).mean()
-
+        
         return logits, loss
 
-    def train_step(self, idx, targets, lr=1e-2):
-        B, T = idx.shape
-        x = self.tok_emb[idx] + self.pos_emb[np.arange(T)][None, :, :]
-        h = np.tanh(np.matmul(x, self.W1) + self.b1)
-        logits = np.matmul(h, self.W2) + self.b2
-
-        logits_flat = logits.reshape(-1, self.vocab_size)
-        targets_flat = targets.reshape(-1)
-
-        probs = softmax(logits_flat, axis=-1)
-        probs = np.clip(probs, 1e-12, None)
-
-        loss = -np.log(probs[np.arange(len(targets_flat)), targets_flat]).mean()
-
-        dlogits = probs
-        dlogits[np.arange(len(targets_flat)), targets_flat] -= 1
-        dlogits /= len(targets_flat)
-        dlogits = dlogits.reshape(B, T, self.vocab_size)
-
-        dW2 = np.matmul(h.reshape(-1, self.n_embd).T, dlogits.reshape(-1, self.vocab_size))
-        db2 = dlogits.sum(axis=(0, 1))
-
-        dh = np.matmul(dlogits, self.W2.T)
-        dtanh = dh * (1 - h ** 2)
-
-        dW1 = np.matmul(x.reshape(-1, self.n_embd).T, dtanh.reshape(-1, self.n_embd))
-        db1 = dtanh.sum(axis=(0, 1))
-
-        dx = np.matmul(dtanh, self.W1.T).reshape(B, T, self.n_embd)
-
-        self.W2 -= lr * dW2
-        self.b2 -= lr * db2
-        self.W1 -= lr * dW1
-        self.b1 -= lr * db1
-
-        for b in range(B):
-            for t in range(T):
-                self.tok_emb[idx[b, t]] -= lr * dx[b, t]
-        self.pos_emb[:T] -= lr * dx.sum(axis=0)
-
-        return loss
-
-    def generate(self, idx, max_new_tokens, temperature=1.0):
+    def generate(self, idx, max_new_tokens=50, temperature=0.85, top_k=40):
         for _ in range(max_new_tokens):
             idx_cond = idx[:, -self.block_size:]
             logits, _ = self.forward(idx_cond)
             logits = logits[0, -1, :] / max(temperature, 1e-8)
+            
+            # Top-k sampling
+            if top_k > 0:
+                v, _ = np.topk(logits, min(top_k, self.vocab_size))
+                logits[logits < v[-1]] = -float('inf')
+            
             probs = softmax(logits, axis=-1)
             next_id = np.random.choice(self.vocab_size, p=probs)
             idx = np.concatenate([idx, np.array([[next_id]])], axis=1)
         return idx
 
 
-def train_tiny_model_numpy(bpe, vocab_size, text_corpus, steps=2000, lr=1e-2):
-    model = TinyTransformer(vocab_size=vocab_size, n_embd=64, block_size=32)
-    tokens = bpe.encode(text_corpus, add_special_tokens=True)
-
-    if len(tokens) < 4:
-        raise ValueError("Corpus too short to train")
-
-    print("\n=== Tiny NumPy Transformer Training ===")
-    print("Vocab size:", vocab_size)
-    print("Token length:", len(tokens))
-
+# ==================== TRAINING FUNCTION ====================
+def train_tiny_model_numpy(bpe, vocab_size, text_corpus, steps=3000, lr=1e-3):
+    model = TinyTransformer(
+        vocab_size=vocab_size, 
+        n_embd=96,      # increased a bit
+        block_size=64, 
+        n_layer=2
+    )
+    
+    tokens = bpe.encode(text_corpus)
+    if len(tokens) < 20:
+        raise ValueError("Corpus too short!")
+    
+    print("\n=== Training TinyTransformer ===")
+    print(f"Vocab size: {vocab_size} | Tokens: {len(tokens)}")
+    
     for step in range(steps):
-        start = np.random.randint(0, max(1, len(tokens) - 3))
-        end = min(start + 16, len(tokens) - 1)
-        x = np.array(tokens[start:end]).reshape(1, -1)
-        y = np.array(tokens[start + 1:end + 1]).reshape(1, -1)
-
+        # Sample random chunk
+        start = np.random.randint(0, max(1, len(tokens) - 65))
+        chunk = tokens[start:start+65]
+        x = np.array(chunk[:-1]).reshape(1, -1)
+        y = np.array(chunk[1:]).reshape(1, -1)
+        
         loss = model.train_step(x, y, lr=lr)
-
-        if step % 200 == 0:
+        
+        if step % 300 == 0 or step == steps-1:
             print(f"Step {step:5d} | Loss: {loss:.4f}")
-
-    print("\n=== Generation test ===")
-    prefix = bpe.encode("hello", add_special_tokens=True)
-    out = model.generate(np.array(prefix).reshape(1, -1), max_new_tokens=20)
-    print("Decoded:", repr(bpe.decode(out[0].tolist())))
-
+    
+    # Quick test generation
+    print("\n=== Generation Test ===")
+    test_prompt = "hello how are you"
+    prefix = bpe.encode(test_prompt)
+    out = model.generate(np.array(prefix).reshape(1, -1), max_new_tokens=30)
+    print("Output:", repr(bpe.decode(out[0].tolist())))
+    
     return model
+
+
+# Add save/load methods to the class (optional but very useful)
+TinyTransformer.save = lambda self, path: np.savez(path, 
+    tok_emb=self.tok_emb, pos_emb=self.pos_emb, W_out=self.W_out, b_out=self.b_out,
+    **{f"layer_{i}_{k}": v for i, layer in enumerate(self.layers) for k, v in layer.items()})
+
+# Note: Loading would need a separate function - we can add later if needed
