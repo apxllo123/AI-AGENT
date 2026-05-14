@@ -1,5 +1,5 @@
 from collections import defaultdict
-
+import re
 
 class SimpleBPE:
     def __init__(self):
@@ -9,98 +9,115 @@ class SimpleBPE:
         self.unk_token = "<unk>"
         self.bos_token = "<bos>"
         self.eos_token = "<eos>"
-
-    def get_stats(self, word_freqs):
-        pairs = defaultdict(int)
-        for word, freq in word_freqs.items():
-            symbols = list(word)
-            for i in range(len(symbols) - 1):
-                pairs[(symbols[i], symbols[i + 1])] += freq
-        return pairs
-
-    def merge_vocab(self, pair, word_freqs):
-        new_vocab = {}
-        replacement = "".join(pair)
-        for word, freq in word_freqs.items():
-            new_word = []
-            i = 0
-            while i < len(word):
-                if i < len(word) - 1 and word[i] == pair[0] and word[i + 1] == pair[1]:
-                    new_word.append(replacement)
-                    i += 2
-                else:
-                    new_word.append(word[i])
-                    i += 1
-            new_vocab["".join(new_word)] = freq
-        return new_vocab
-
-    def tokenize_word(self, word):
-        pieces = list(word)
-        for a, b in self.merges:
-            new_pieces = []
-            i = 0
-            while i < len(pieces):
-                if i < len(pieces) - 1 and pieces[i] == a and pieces[i + 1] == b:
-                    new_pieces.append(a + b)
-                    i += 2
-                else:
-                    new_pieces.append(pieces[i])
-                    i += 1
-            pieces = new_pieces
-        return pieces
-
-    def train(self, text, num_merges=12):
-        words = text.split()
-        word_freqs = {}
+        
+    def train(self, text: str, num_merges: int = 50):
+        """Train a simple BPE tokenizer"""
+        if not text.strip():
+            text = "hello world ai agent code money learn"
+        
+        # Start with characters
+        words = re.findall(r'\w+|[^\w\s]', text.lower())
+        word_freqs = defaultdict(int)
         for word in words:
-            word_freqs[word] = word_freqs.get(word, 0) + 1
-
-        for _ in range(num_merges):
+            word_freqs[' '.join(list(word))] += 1  # character level initial
+        
+        print(f"Training BPE with {num_merges} merges on {len(words)} words...")
+        
+        for i in range(num_merges):
             pairs = self.get_stats(word_freqs)
             if not pairs:
                 break
             best_pair = max(pairs, key=pairs.get)
             self.merges.append(best_pair)
             word_freqs = self.merge_vocab(best_pair, word_freqs)
-
-        tokens = [self.unk_token, self.bos_token, self.eos_token]
-        seen = set(tokens)
+            
+            if i % 10 == 0:
+                print(f"Merge {i+1}/{num_merges} completed")
+        
+        # Build vocabulary
+        self.vocab = {}
+        self.vocab_r = {}
         idx = 0
-
-        for t in tokens:
+        
+        special_tokens = [self.unk_token, self.bos_token, self.eos_token]
+        for t in special_tokens:
             self.vocab[t] = idx
             self.vocab_r[idx] = t
             idx += 1
-
-        for word in word_freqs:
-            for t in self.tokenize_word(word):
-                if t not in seen:
-                    self.vocab[t] = idx
-                    self.vocab_r[idx] = t
-                    seen.add(t)
+        
+        # Add learned tokens
+        for merged_word in word_freqs.keys():
+            for token in merged_word.split():
+                if token not in self.vocab:
+                    self.vocab[token] = idx
+                    self.vocab_r[idx] = token
                     idx += 1
+        
+        print(f"✅ BPE Training finished. Vocab size: {len(self.vocab)}")
+    
+    def get_stats(self, word_freqs):
+        pairs = defaultdict(int)
+        for word, freq in word_freqs.items():
+            symbols = word.split()
+            for i in range(len(symbols) - 1):
+                pairs[(symbols[i], symbols[i + 1])] += freq
+        return pairs
 
-    def encode(self, text, add_special_tokens=False):
-        words = text.split()
+    def merge_vocab(self, pair, word_freqs):
+        new_vocab = {}
+        replacement = ' '.join(pair)
+        for word, freq in word_freqs.items():
+            new_word = word.replace(' '.join(pair), replacement)
+            new_vocab[new_word] = freq
+        return new_vocab
+
+    def encode(self, text: str, add_special_tokens: bool = True):
+        """Convert text to token ids"""
+        if not text:
+            return []
+        
+        text = text.lower()
+        words = re.findall(r'\w+|[^\w\s]', text)
         tokens = []
+        
         if add_special_tokens:
             tokens.append(self.vocab[self.bos_token])
-
+        
         for word in words:
-            pieces = self.tokenize_word(word)
+            # Start with characters
+            pieces = list(word)
+            # Apply merges
+            for a, b in self.merges:
+                i = 0
+                while i < len(pieces) - 1:
+                    if pieces[i] == a and pieces[i + 1] == b:
+                        pieces[i] = a + b
+                        del pieces[i + 1]
+                    else:
+                        i += 1
+            # Convert to ids
             for p in pieces:
                 tokens.append(self.vocab.get(p, self.vocab[self.unk_token]))
-
+        
         if add_special_tokens:
             tokens.append(self.vocab[self.eos_token])
-
+        
         return tokens
 
     def decode(self, token_ids):
+        """Convert token ids back to text"""
         pieces = []
         for tid in token_ids:
             token = self.vocab_r.get(tid, self.unk_token)
             if token in {self.bos_token, self.eos_token, self.unk_token}:
                 continue
             pieces.append(token)
-        return " ".join(pieces)
+        return "".join(pieces).replace(" ", " ")  # Clean spacing
+
+
+# Quick test when running directly
+if __name__ == "__main__":
+    bpe = SimpleBPE()
+    bpe.train("hello ai agent fix code make money learn fast", num_merges=30)
+    print("Test encode:", bpe.encode("hello ai agent"))
+    print("Test decode:", bpe.decode(bpe.encode("hello how are you")))
