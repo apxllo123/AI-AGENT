@@ -2,11 +2,11 @@ import os
 import pickle
 import random
 import sys
-
-# Add current directory to path so we can import local modules
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
+import numpy as np
 from flask import Flask, request, jsonify
+
+# Add current directory to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 app = Flask(__name__)
 
@@ -17,63 +17,53 @@ model_path = os.path.join(base_dir, "artifacts", "model.pkl")
 bpe = None
 model = None
 
-# Fallback responses
+# ==================== FALLBACK RESPONSES ====================
 FALLBACK_RESPONSES = [
-    "Hello! I'm your AI assistant. How can I help you today?",
-    "That's interesting! Tell me more about that.",
-    "I understand. What would you like to know more about?",
-    "Thanks for sharing! I'm here to help.",
-    "Great question! Let me think about that.",
-    "I can help with many topics - just ask!",
-    "That's a cool thought. Tell me more!",
-    "I'm learning new things every day!",
-    "What else would you like to discuss?",
-    "I'm here to assist you with any questions.",
+    "Hello! I'm your AI-AGENT. How can I help you today?",
+    "Interesting! Tell me more.",
+    "I understand. What would you like to do next?",
+    "I'm here to help with coding, ideas, or making money. Ask me anything!",
+    "Good question! Let me think...",
+    "That's a cool idea. Want me to expand on it?",
 ]
 
-def get_fallback_reply(message):
-    """Get a fallback reply based on keywords."""
+def get_fallback_reply(message: str) -> str:
     m = message.lower()
-    if any(w in m for w in ["hello", "hi", "hey", "greetings"]):
-        return "Hello there! How can I assist you today?"
-    if any(w in m for w in ["help", "assist", "support"]):
-        return "I'm here to help! What do you need assistance with?"
-    if any(w in m for w in ["who are you", "name", "what are you"]):
-        return "I'm AI-AGENT, an AI assistant built with a custom transformer model!"
-    if any(w in m for w in ["what can you do", "abilities", "capabilities"]):
-        return "I can chat, answer questions, help with tasks, and more! Just ask."
-    if any(w in m for w in ["thanks", "thank you", "appreciate"]):
-        return "You're welcome! Happy to help."
-    if any(w in m for w in ["bye", "goodbye", "see you"]):
-        return "Goodbye! Hope to chat again soon!"
-    if any(w in m for w in ["weather", "time", "date"]):
-        return "I'm not connected to live data, but I'd love to chat about any topic!"
-    if any(w in m for w in ["weather", "news", "stock"]):
-        return "I don't have real-time data access, but I can discuss many topics!"
+    if any(w in m for w in ["hello", "hi", "hey"]):
+        return "Hello! I'm AI-AGENT, ready to help you code, make money, or learn."
+    if any(w in m for w in ["who are you", "name"]):
+        return "I'm AI-AGENT — a custom-built AI that can fix code, generate ideas, and help you earn."
+    if any(w in m for w in ["what can you do", "abilities"]):
+        return "I can help fix code, brainstorm money-making ideas, learn from conversations, and more!"
+    if any(w in m for w in ["thank", "thanks"]):
+        return "You're welcome! Let's keep building."
     return random.choice(FALLBACK_RESPONSES)
 
-# Try to load model with local code
+
+# ==================== LOAD MODEL ====================
 try:
     from model.huge_transformer import TinyTransformer
     from tokenizer.transformer import SimpleBPE
-    
-    # Try loading artifacts
+
     with open(bpe_path, "rb") as f:
         bpe = pickle.load(f)
-    print(f"BPE loaded: {type(bpe)}")
-    
+    print(f"✅ BPE tokenizer loaded: {type(bpe)}")
+
     with open(model_path, "rb") as f:
         model = pickle.load(f)
-    print(f"Model loaded: {type(model)}")
-    
+    print(f"✅ Model loaded: {type(model)}")
+
 except Exception as e:
-    print(f"Model loading error: {e}")
+    print(f"⚠️ Model loading failed: {e}")
+    print("Falling back to keyword responses only.")
     bpe = None
     model = None
 
+
 @app.route("/")
 def home():
-    return jsonify({"status": "ok"})
+    return jsonify({"status": "ok", "model_loaded": model is not None})
+
 
 @app.route("/reply", methods=["POST"])
 def reply():
@@ -83,44 +73,52 @@ def reply():
     if not message:
         return jsonify({"error": "Message is required"}), 400
 
-    # Try to use real model if loaded
-    if bpe is not None and model is not None:
+    # Try custom model first
+    if model is not None and bpe is not None:
         try:
-            # Encode input
+            # Encode
             if hasattr(bpe, "encode"):
                 encoded = bpe.encode(message)
-                encoded = [encoded] if isinstance(encoded, int) else encoded
+                if isinstance(encoded, int):
+                    encoded = [encoded]
             else:
-                encoded = [ord(c) % 100 for c in message[:16]]
-            
-            import numpy as np
-            idx = np.array(encoded).reshape(1, -1)
-            
-            # Generate with model
+                # Very basic fallback encoding
+                encoded = [ord(c) % bpe.vocab_size if hasattr(bpe, 'vocab_size') else 100 for c in message[:50]]
+
+            idx = np.array(encoded, dtype=np.int32).reshape(1, -1)
+
+            # Generate
             if hasattr(model, "generate"):
-                output = model.generate(idx, max_new_tokens=30, temperature=0.8)
-            elif hasattr(model, "forward"):
-                logits, _ = model.forward(idx)
-                output_idx = logits[0, -1].argmax()
-                output = np.concatenate([idx, [[output_idx]], axis=1)
-            
-            # Decode output
-            if hasattr(bpe, "decode"):
-                try:
-                    reply_text = bpe.decode(output[0].tolist())
-                except:
-                    reply_text = "".join(chr(c % 26 + 97) for c in output[0][:30])
+                output = model.generate(
+                    idx, 
+                    max_new_tokens=60, 
+                    temperature=0.85,
+                    top_k=40
+                )
             else:
-                reply_text = "".join(chr(c % 26 + 97) for c in output[0])
-            
-            if reply_text and len(reply_text) > 2:
-                return jsonify({"reply": reply_text.strip()})
+                # Simple forward pass fallback
+                logits, _ = model.forward(idx)
+                next_token = logits[0, -1].argmax()
+                output = np.concatenate([idx, [[next_token]]], axis=1)
+
+            # Decode
+            if hasattr(bpe, "decode"):
+                reply_text = bpe.decode(output[0].tolist())
+            else:
+                reply_text = "".join(chr((t % 26) + 97) for t in output[0][-30:])
+
+            if reply_text and len(reply_text.strip()) > 3:
+                return jsonify({"reply": reply_text.strip(), "source": "custom_model"})
+
         except Exception as e:
-            print(f"Model error: {e}")
-    
-    # Fallback to keyword-based response
-    return jsonify({"reply": get_fallback_reply(message)})
+            print(f"Model generation error: {e}")
+
+    # Fallback
+    fallback = get_fallback_reply(message)
+    return jsonify({"reply": fallback, "source": "fallback"})
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    print(f"🚀 AI-AGENT Python service starting on port {port}")
+    app.run(host="0.0.0.0", port=port, debug=False)
