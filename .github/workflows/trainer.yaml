@@ -1,61 +1,59 @@
-name: Train AI-AGENT Model
+name: Train AI-AGENT Tiny Model
 
 on:
-  workflow_dispatch:  # Manual trigger (recommended)
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: "Training steps"
+        required: false
+        default: "500"
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - 'data/**'          # Only trigger if training data changes
-      - 'train.py'
-      - 'model/**'
-      - 'tokenizer/**'
-      - '.github/workflows/train.yml'
+      - "data/**"
+      - "train.py"
+      - "model/**"
+      - "tokenizer/**"
+      - ".github/workflows/trainer.yaml"
 
 jobs:
   train:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
-          cache-dependency-path: python-service/requirements.txt
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r python-service/requirements.txt numpy
+          pip install -r requirements.txt
 
-      - name: Create directories
-        run: mkdir -p data artifacts
+      - name: Train model
+        run: python train.py --steps "${{ github.event.inputs.steps || '500' }}" --batch-size 16 --n-embd 96 --n-layer 3 --n-head 4
 
-      - name: Run Training
-        run: python train.py
-        env:
-          TRAINING_STEPS: 3500   # You can adjust this
-
-      - name: Upload Model Artifacts
+      - name: Upload model artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: model-artifacts
-          path: artifacts/
+          name: ai-agent-model-artifacts
+          path: |
+            artifacts/model.pt
+            artifacts/bpe.pkl
           if-no-files-found: error
           retention-days: 30
 
-      - name: Commit and Push Updated Artifacts (if changed)
+      - name: Commit updated small artifacts
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f artifacts/
-          git diff --staged --quiet || git commit -m "Update trained model artifacts [automated]"
+          git add -f artifacts/bpe.pkl artifacts/model.pt python-service/artifacts/bpe.pkl python-service/artifacts/model.pt
+          git diff --staged --quiet || git commit -m "Update trained tiny model artifacts"
           git push
         continue-on-error: true
-
-      - name: Training Complete
-        run: echo "🎉 Model training completed successfully!"
