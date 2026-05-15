@@ -1,0 +1,39 @@
+name: JARVIS smoke test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "server/**"
+      - "my-site/**"
+      - "package.json"
+      - ".github/workflows/jarvis-local.yml"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Node dependencies
+        run: npm install
+
+      - name: Check server syntax
+        run: npm run check:js
+
+      - name: Start web server and check health
+        run: |
+          USE_OLLAMA=false npm start &
+          SERVER_PID=$!
+          sleep 3
+          curl -f http://127.0.0.1:8080/health
+          kill $SERVER_PID
