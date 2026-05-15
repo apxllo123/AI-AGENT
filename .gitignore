@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+.env
+.DS_Store
+data/jarvis_memory.json
+data/agent_memory.json
+data/conversations.json
+
+# Generated checkpoints can get large; keep tiny demo artifacts only if you want.
+artifacts/*.pt
+python-service/artifacts/*.pt
+model_epoch_*.pt
