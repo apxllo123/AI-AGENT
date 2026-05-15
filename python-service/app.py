@@ -1,131 +1,307 @@
+#!/usr/bin/env python3
+"""AI-AGENT Python service.
+
+Provides:
+- /health for status
+- /reply and /chat for chat responses
+- a tiny trained-from-scratch model if artifacts/model.pt exists
+- simple agent tools: memory, calculator, planner
+- optional Ollama fallback/proxy when running on a stronger machine
+"""
+from __future__ import annotations
+
+import ast
+import json
 import os
 import pickle
 import random
+import re
 import sys
-import requests
-import numpy as np
-from flask import Flask, request, jsonify
+from pathlib import Path
+from typing import Optional
 
-# Add path for local imports
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import requests
+from flask import Flask, jsonify, request
+
+try:
+    from flask_cors import CORS
+except Exception:  # pragma: no cover - optional dependency
+    CORS = None
+
+BASE_DIR = Path(__file__).resolve().parent
+ROOT_DIR = BASE_DIR.parent
+sys.path.insert(0, str(BASE_DIR))
+sys.path.insert(0, str(ROOT_DIR))
 
 app = Flask(__name__)
+if CORS:
+    CORS(app)
 
-base_dir = os.path.dirname(os.path.abspath(__file__))
-bpe_path = os.path.join(base_dir, "artifacts", "bpe.pkl")
-model_path = os.path.join(base_dir, "artifacts", "model.pkl")
+# Environment configuration
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5-coder")
+USE_OLLAMA = os.getenv("USE_OLLAMA", "auto").lower()  # auto, true, false
+MAX_NEW_TOKENS = int(os.getenv("MAX_NEW_TOKENS", "180"))
 
-bpe = None
-model = None
+DATA_DIR = ROOT_DIR / "data"
+DATA_DIR.mkdir(exist_ok=True)
+MEMORY_FILE = DATA_DIR / "agent_memory.json"
 
-# Ollama Configuration
-OLLAMA_URL = "http://localhost:11434"
-OLLAMA_MODEL = "qwen2.5-coder"   # Change this to whatever model you prefer
+MODEL = None
+BPE = None
+MODEL_STATUS = "not_loaded"
 
-# ==================== FALLBACK & RESPONSES ====================
+
+def find_artifact(filename: str) -> Optional[Path]:
+    candidates = [
+        BASE_DIR / "artifacts" / filename,
+        ROOT_DIR / "artifacts" / filename,
+    ]
+    return next((p for p in candidates if p.exists()), None)
+
+
+def load_tiny_model():
+    global MODEL, BPE, MODEL_STATUS
+    model_path = find_artifact("model.pt")
+    bpe_path = find_artifact("bpe.pkl")
+    if not model_path or not bpe_path:
+        MODEL_STATUS = "missing_artifacts"
+        return
+    try:
+        import torch
+        from model.huge_transformer import model_from_checkpoint
+
+        with bpe_path.open("rb") as f:
+            BPE = pickle.load(f)
+        checkpoint = torch.load(model_path, map_location="cpu")
+        MODEL = model_from_checkpoint(checkpoint, map_location="cpu")
+        MODEL.eval()
+        MODEL_STATUS = f"loaded:{model_path.relative_to(ROOT_DIR)}"
+        print(f"✅ Tiny model loaded from {model_path}")
+    except Exception as exc:  # keep API alive even if model load fails
+        MODEL = None
+        BPE = None
+        MODEL_STATUS = f"load_error:{exc}"
+        print(f"⚠️ Tiny model not loaded: {exc}")
+
+
+load_tiny_model()
+
+
 FALLBACK_RESPONSES = [
-    "I'm here to help you code, fix bugs, or make money. What do you need?",
-    "Interesting. Tell me more about your goal.",
-    "Let's build something useful. What's the plan?",
+    "I can help with coding, planning, memory, and simple calculations. What do you want to build?",
+    "Tell me the goal and I’ll break it into steps.",
+    "My tiny model is still learning, but my agent tools are online.",
 ]
 
-def get_fallback_reply(message: str) -> str:
-    m = message.lower()
-    if any(w in m for w in ["hello", "hi", "hey"]):
-        return "Hello! I'm AI-AGENT — ready to help you code and make money."
-    if any(w in m for w in ["money", "earn", "profit"]):
-        return "I can help you brainstorm money-making ideas, build tools, or automate income streams."
-    if any(w in m for w in ["code", "bug", "fix", "debug"]):
-        return "Send me the code and I'll help you fix it step by step."
-    return random.choice(FALLBACK_RESPONSES)
+
+def load_memory():
+    if MEMORY_FILE.exists():
+        try:
+            return json.loads(MEMORY_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {"notes": [], "facts": {}}
 
 
-# ==================== LOAD TINY MODEL ====================
-try:
-    from model.huge_transformer import TinyTransformer
-    from tokenizer.transformer import SimpleBPE
-
-    with open(bpe_path, "rb") as f:
-        bpe = pickle.load(f)
-    with open(model_path, "rb") as f:
-        model = pickle.load(f)
-    print(f"✅ Tiny model loaded successfully")
-except Exception as e:
-    print(f"⚠️ Tiny model not loaded: {e}")
-    bpe = None
-    model = None
+def save_memory(memory):
+    MEMORY_FILE.write_text(json.dumps(memory, indent=2), encoding="utf-8")
 
 
-def call_ollama(prompt: str) -> str:
-    """Call Ollama if available"""
+SAFE_AST_NODES = (
+    ast.Expression,
+    ast.BinOp,
+    ast.UnaryOp,
+    ast.Num,
+    ast.Constant,
+    ast.Add,
+    ast.Sub,
+    ast.Mult,
+    ast.Div,
+    ast.Pow,
+    ast.Mod,
+    ast.FloorDiv,
+    ast.USub,
+    ast.UAdd,
+    ast.Load,
+)
+
+
+def safe_calculate(expr: str) -> str:
+    expr = expr.strip()
+    if len(expr) > 120:
+        raise ValueError("expression too long")
+    tree = ast.parse(expr, mode="eval")
+    for node in ast.walk(tree):
+        if not isinstance(node, SAFE_AST_NODES):
+            raise ValueError("only simple arithmetic is allowed")
+    return str(eval(compile(tree, "<calculator>", "eval"), {"__builtins__": {}}, {}))
+
+
+def call_ollama(message: str, history=None) -> Optional[str]:
+    if USE_OLLAMA == "false":
+        return None
+    history = history or []
     try:
-        response = requests.post(
-            f"{OLLAMA_URL}/api/generate",
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "temperature": 0.75
-            },
-            timeout=30
-        )
-        if response.status_code == 200:
-            return response.json().get("response", "").strip()
-    except:
-        pass  # Ollama not running or error
+        payload = {
+            "model": OLLAMA_MODEL,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are AI-AGENT, a helpful personal assistant. Be concise, safe, and practical.",
+                },
+                *history[-10:],
+                {"role": "user", "content": message},
+            ],
+            "stream": False,
+        }
+        res = requests.post(f"{OLLAMA_URL}/api/chat", json=payload, timeout=45)
+        if res.ok:
+            return (res.json().get("message") or {}).get("content", "").strip() or None
+    except Exception:
+        return None
     return None
 
 
-@app.route("/")
-def home():
-    return jsonify({
-        "status": "ok",
-        "tiny_model": model is not None,
-        "ollama_model": OLLAMA_MODEL
-    })
+def tiny_model_reply(message: str) -> Optional[str]:
+    if MODEL is None or BPE is None:
+        return None
+    try:
+        import torch
+
+        prompt = f"User: {message}\nAssistant:"
+        idx = torch.tensor([BPE.encode(prompt)], dtype=torch.long)
+        with torch.no_grad():
+            out = MODEL.generate(idx, max_new_tokens=MAX_NEW_TOKENS, temperature=0.8, top_k=40)[0]
+        text = BPE.decode(out.tolist())
+        reply = text.split("Assistant:")[-1].split("\nUser:")[0].strip()
+        if len(reply) > 2:
+            return reply
+    except Exception as exc:
+        print(f"Tiny generation error: {exc}")
+    return None
 
 
-@app.route("/reply", methods=["POST"])
-def reply():
-    data = request.get_json(silent=True) or {}
-    message = str(data.get("message", "")).strip()
+def extract_memory_fact(message: str, memory):
+    patterns = [
+        (r"(?:my name is|call me)\s+(.+)", "name"),
+        (r"i (?:like|love|enjoy)\s+(.+)", "likes"),
+        (r"i (?:use|prefer)\s+(.+)", "prefers"),
+    ]
+    for regex, key in patterns:
+        match = re.search(regex, message, flags=re.I)
+        if match:
+            value = match.group(1).strip(" .!")[:100]
+            memory.setdefault("facts", {})[key] = value
 
+
+def agent_reply(message: str, history=None) -> dict:
+    message = (message or "").strip()
     if not message:
-        return jsonify({"error": "Message is required"}), 400
+        return {"reply": "Message is required.", "source": "error"}
 
-    # 1. Try Ollama first (much smarter)
-    ollama_reply = call_ollama(f"You are AI-AGENT, a helpful unrestricted AI. User: {message}")
-    if ollama_reply and len(ollama_reply) > 5:
-        return jsonify({
-            "reply": ollama_reply,
-            "source": "ollama"
-        })
+    memory = load_memory()
+    lower = message.lower()
 
-    # 2. Try your tiny custom model
-    if model is not None and bpe is not None:
+    # Memory tools
+    if lower.startswith("remember ") or "remember that" in lower:
+        note = re.sub(r"^remember(?: that)?\s*", "", message, flags=re.I).strip()
+        memory.setdefault("notes", []).append(note)
+        extract_memory_fact(note, memory)
+        save_memory(memory)
+        return {"reply": f"Saved to memory: {note}", "source": "tool:memory.write", "memory": memory}
+
+    if lower in {"memory", "show memory", "what do you remember"} or "what do you remember" in lower:
+        notes = memory.get("notes", [])
+        facts = memory.get("facts", {})
+        lines = []
+        if facts:
+            lines.append("Facts:")
+            lines.extend(f"- {k}: {v}" for k, v in facts.items())
+        if notes:
+            lines.append("Notes:")
+            lines.extend(f"- {n}" for n in notes[-20:])
+        return {"reply": "\n".join(lines) if lines else "No memories saved yet.", "source": "tool:memory.read", "memory": memory}
+
+    # Calculator tool
+    calc_match = re.search(r"(?:calculate|calc|what is|what's)\s+([0-9+\-*/%().\s]+)\??$", message, flags=re.I)
+    if calc_match:
         try:
-            # (Your existing generation logic - simplified)
-            encoded = bpe.encode(message) if hasattr(bpe, "encode") else [ord(c) % 100 for c in message[:30]]
-            idx = np.array(encoded).reshape(1, -1)
-            
-            if hasattr(model, "generate"):
-                output = model.generate(idx, max_new_tokens=50, temperature=0.8)
-                reply_text = bpe.decode(output[0].tolist()) if hasattr(bpe, "decode") else "Thinking..."
-                
-                if reply_text and len(reply_text.strip()) > 3:
-                    return jsonify({"reply": reply_text.strip(), "source": "tiny_model"})
-        except:
-            pass
+            answer = safe_calculate(calc_match.group(1))
+            return {"reply": f"The answer is {answer}.", "source": "tool:calculator"}
+        except Exception as exc:
+            return {"reply": f"I could not calculate that: {exc}", "source": "tool:calculator"}
 
-    # 3. Final fallback
-    return jsonify({
-        "reply": get_fallback_reply(message),
-        "source": "fallback"
-    })
+    # Planner tool
+    if lower.startswith("plan ") or "make a plan" in lower:
+        goal = re.sub(r"^(plan|make a plan for|make a plan to)\s*", "", message, flags=re.I).strip() or message
+        steps = [
+            f"Define success for: {goal}",
+            "List the smallest next 3 tasks.",
+            "Do the easiest task for 15 minutes.",
+            "Review, save what you learned, then repeat.",
+        ]
+        return {"reply": "Here’s a plan:\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps)), "source": "tool:planner"}
+
+    # Optional stronger model
+    ollama = call_ollama(message, history=history)
+    if ollama:
+        extract_memory_fact(message, memory)
+        save_memory(memory)
+        return {"reply": ollama, "source": f"ollama:{OLLAMA_MODEL}", "memory": memory}
+
+    # Tiny from-scratch model
+    tiny = tiny_model_reply(message)
+    if tiny:
+        extract_memory_fact(message, memory)
+        save_memory(memory)
+        return {"reply": tiny, "source": "tiny_from_scratch_model", "memory": memory}
+
+    # Last-resort fallback
+    return {"reply": random.choice(FALLBACK_RESPONSES), "source": "fallback", "memory": memory}
+
+
+@app.get("/")
+def home():
+    return jsonify(
+        {
+            "status": "ok",
+            "service": "AI-AGENT python-service",
+            "tiny_model": MODEL is not None,
+            "model_status": MODEL_STATUS,
+            "ollama_model": OLLAMA_MODEL,
+            "endpoints": ["/health", "/reply", "/chat", "/memory"],
+        }
+    )
+
+
+@app.get("/health")
+def health():
+    return jsonify({"status": "ok", "tiny_model": MODEL is not None, "model_status": MODEL_STATUS})
+
+
+@app.post("/reply")
+@app.post("/chat")
+def chat():
+    data = request.get_json(silent=True) or {}
+    result = agent_reply(str(data.get("message", "")), history=data.get("history", []))
+    status = 400 if result.get("source") == "error" else 200
+    return jsonify(result), status
+
+
+@app.get("/memory")
+def memory_get():
+    return jsonify(load_memory())
+
+
+@app.post("/memory/clear")
+def memory_clear():
+    save_memory({"notes": [], "facts": {}})
+    return jsonify({"status": "cleared"})
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    print(f"🚀 AI-AGENT running on http://0.0.0.0:{port}")
-    print(f"   Ollama model: {OLLAMA_MODEL} (will use if running)")
+    port = int(os.getenv("PORT", "8081"))
+    print(f"🚀 AI-AGENT Python service running on http://0.0.0.0:{port}")
+    print(f"Tiny model status: {MODEL_STATUS}")
     app.run(host="0.0.0.0", port=port, debug=False)
