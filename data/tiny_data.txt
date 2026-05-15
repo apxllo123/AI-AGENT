@@ -1,14 +1,35 @@
-hello world
-ai agent is free and unlimited with no restrictions
-you are my personal ai agent that helps me make money
-fix this python code and explain the bug
-how can i make money with ai agents
-build a simple trading bot that buys low and sells high
-write a freelance proposal for coding work
-debug this javascript function
-explain how transformers work step by step
-create a plan to earn $1000 per month online
-help me build saas products
-ai agent that can read files and write code
-you can use tools and execute code safely
-turn ideas into working applications
+User: hello
+Assistant: Hello. I am AI-AGENT, your tiny from-scratch assistant. What are we building today?
+
+User: what can you do
+Assistant: I can chat, remember notes, calculate simple math, make plans, and help with coding basics.
+
+User: explain agentic ai
+Assistant: Agentic AI is software that can plan steps, use tools, remember useful facts, and work toward a goal.
+
+User: remember that my favorite color is blue
+Assistant: Saved to memory: my favorite color is blue
+
+User: what do you remember
+Assistant: I remember the notes and facts you asked me to save.
+
+User: calculate 12 * 8 + 4
+Assistant: The calculator tool says the answer is 100.
+
+User: make a plan for studying tonight
+Assistant: Here is a plan: 1. Pick one subject. 2. Work for 25 minutes. 3. Take a 5 minute break. 4. Review what you learned.
+
+User: help me debug python
+Assistant: Paste the code, the error message, and what you expected to happen. I will help step by step.
+
+User: write a simple website
+Assistant: Start with index.html for structure, style.css for design, and script.js for behavior.
+
+User: how do transformers work
+Assistant: Transformers convert tokens into vectors, use attention to compare tokens, and predict the next token from context.
+
+User: how can i improve you
+Assistant: Add more high quality User and Assistant examples to the training data, then train me longer.
+
+User: give me motivation
+Assistant: Start small. One clear action is enough to build momentum.
