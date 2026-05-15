@@ -1,46 +1,28 @@
-import os
+#!/usr/bin/env python3
+"""CLI helper for generating one reply from the Python service code.
+
+Usage:
+    python server/reply.py "hello"
+"""
+from __future__ import annotations
+
+import json
 import sys
-import pickle
+from pathlib import Path
 
-base_dir = os.path.dirname(__file__)
-message = sys.argv[1] if len(sys.argv) > 1 else ""
+ROOT = Path(__file__).resolve().parents[1]
+PY_SERVICE = ROOT / "python-service"
+sys.path.insert(0, str(PY_SERVICE))
+sys.path.insert(0, str(ROOT))
 
-bpe_path = os.path.join(base_dir, "artifacts", "bpe.pkl")
-model_path = os.path.join(base_dir, "artifacts", "model.pkl")
+from app import agent_reply  # noqa: E402
 
-try:
-    with open(bpe_path, "rb") as f:
-        bpe = pickle.load(f)
-    with open(model_path, "rb") as f:
-        model = pickle.load(f)
-except (FileNotFoundError, pickle.UnpicklingError, OSError) as err:
-    print(f"Model files could not be loaded: {err}", file=sys.stderr)
-    sys.exit(1)
 
-if hasattr(bpe, "encode"):
-    encoded = bpe.encode(message)
-else:
-    encoded = message
+def main():
+    message = " ".join(sys.argv[1:]).strip() or "hello"
+    result = agent_reply(message)
+    print(json.dumps(result, indent=2))
 
-if hasattr(model, "predict"):
-    output = model.predict(encoded)
-elif hasattr(model, "generate"):
-    output = model.generate(encoded)
-elif hasattr(model, "forward"):
-    output = model.forward(encoded)
-else:
-    print("Model loaded, but no usable prediction method was found.", file=sys.stderr)
-    sys.exit(1)
 
-if hasattr(output, "tolist"):
-    output = output.tolist()
-
-if isinstance(output, (list, tuple)) and len(output) == 1:
-    output = output[0]
-
-if hasattr(bpe, "decode") and not isinstance(output, str):
-    reply = bpe.decode(output)
-else:
-    reply = output
-
-print(str(reply).strip())
+if __name__ == "__main__":
+    main()
