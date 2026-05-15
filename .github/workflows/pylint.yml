@@ -1,52 +1,41 @@
-name: Pylint - Code Quality
+name: Python checks
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - '**.py'                    # Only run when Python files change
-      - '.pylintrc'
-      - '.github/workflows/pylint.yml'
+      - "**.py"
+      - "requirements.txt"
+      - "python-service/requirements*.txt"
+      - ".github/workflows/pylint.yml"
   pull_request:
-    branches:
-      - main
-  workflow_dispatch:               # Allow manual trigger
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  lint:
+  python-checks:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
-          cache-dependency-path: python-service/requirements-dev.txt
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f python-service/requirements-dev.txt ]; then
-            pip install -r python-service/requirements-dev.txt
-          else
-            pip install pylint
-          fi
+          pip install -r requirements.txt pylint
 
-      - name: Run Pylint
+      - name: Syntax check
+        run: python -m compileall train.py model tokenizer python-service
+
+      - name: Pylint
         run: |
           pylint --rcfile=.pylintrc \
-            tokenizer/ \
-            model/ \
-            server/ \
-            python-service/ \
-            train.py \
-            --fail-under=6.0 || echo "Pylint completed with some warnings (not failing CI)"
-        continue-on-error: true   # Don't block PRs for minor issues
-
-      - name: Summary
-        run: echo "✅ Pylint analysis completed!"
+            train.py model tokenizer python-service \
+            --fail-under=6.0
+        continue-on-error: true
