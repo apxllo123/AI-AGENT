@@ -56,4 +56,3 @@ jobs:
           git add -f artifacts/bpe.pkl artifacts/model.pt python-service/artifacts/bpe.pkl python-service/artifacts/model.pt
           git diff --staged --quiet || git commit -m "Update trained tiny model artifacts"
           git push
-        continue-on-error: true
