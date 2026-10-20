@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "node server/server.js",
+    "check:js": "node --check server/server.js",
     "python-service": "python python-service/app.py",
     "train": "python train.py",
     "train:quick": "python train.py --quick"
