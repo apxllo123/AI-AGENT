@@ -3,10 +3,56 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const fetch = require("node-fetch");
+const crypto = require("crypto");
 
 const app = express();
-app.use(cors());
+
+// ── Security ─────────────────────────────────────────────
+// This server stores private memory and conversations, so those routes must
+// not answer unauthenticated network clients. It listens on loopback by
+// default and always requires a shared token for chat, memory, and conversation
+// routes. Set HOST and AUTH_TOKEN in .env before you expose it off-host.
+const HOST = process.env.HOST || "127.0.0.1";
+const AUTH_TOKEN =
+  process.env.AUTH_TOKEN || crypto.randomBytes(24).toString("hex");
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+if (!process.env.AUTH_TOKEN) {
+  console.log(`AUTH_TOKEN is not set. Generated a temporary token: ${AUTH_TOKEN}`);
+  console.log("Set AUTH_TOKEN in .env to keep a stable value.");
+}
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Same-origin and non-browser requests have no Origin header.
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
+  })
+);
 app.use(express.json({ limit: "1mb" }));
+
+function stringsMatch(a, b) {
+  const left = Buffer.from(String(a));
+  const right = Buffer.from(String(b));
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+// Gate the private routes: chat can read and write memory, and the memory and
+// conversation routes expose it directly.
+function requireAuth(req, res, next) {
+  const header = req.get("authorization") || "";
+  const bearer = header.startsWith("Bearer ") ? header.slice(7) : "";
+  const provided = bearer || req.get("x-auth-token") || "";
+  if (provided && stringsMatch(provided, AUTH_TOKEN)) return next();
+  return res.status(401).json({ error: "Unauthorized" });
+}
 
 // Serve frontend
 const sitePath = path.join(__dirname, "../my-site");
@@ -231,7 +277,7 @@ app.get("/health", async (req, res) => {
 
 app.get("/", (req, res) => res.sendFile(path.join(sitePath, "index.html")));
 
-app.post("/chat", async (req, res) => {
+app.post("/chat", requireAuth, async (req, res) => {
   const { message, history = [] } = req.body || {};
   if (!message) return res.status(400).json({ error: "Message required" });
 
@@ -260,17 +306,17 @@ app.post("/chat", async (req, res) => {
   res.json({ reply, model: "fallback" });
 });
 
-app.get("/memory", (req, res) => res.json(memory));
+app.get("/memory", requireAuth, (req, res) => res.json(memory));
 
-app.post("/memory/clear", (req, res) => {
+app.post("/memory/clear", requireAuth, (req, res) => {
   memory = { userName: null, facts: {}, learned: [] };
   saveMemory();
   res.json({ status: "Memory cleared" });
 });
 
-app.get("/conversations", (req, res) => {
+app.get("/conversations", requireAuth, (req, res) => {
   res.json({ count: conversations.length, recent: conversations.slice(-20) });
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, "0.0.0.0", () => console.log(`🤖 JARVIS online → http://0.0.0.0:${PORT}`));
+app.listen(PORT, HOST, () => console.log(`🤖 JARVIS online → http://${HOST}:${PORT}`));

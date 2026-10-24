@@ -65,6 +65,15 @@ print(public_url)
 
 ## 6. Start the full app
 
+Before you expose the app, set an access token so only you can read the memory
+and conversations:
+
+```bash
+export AUTH_TOKEN="choose-a-long-random-value"
+```
+
+The web page asks for this token once and stores it in the browser.
+
 Run this in a Colab cell and keep it running:
 
 ```bash

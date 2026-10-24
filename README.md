@@ -97,6 +97,10 @@ Open:
 http://localhost:8080
 ```
 
+The server prints an access token in the console on first start. Enter it in the
+browser prompt when the page loads. Set `AUTH_TOKEN` in `.env` to keep a stable
+value.
+
 ---
 
 ## 📱 iPad 10th Gen / iPad-Only Setup
@@ -280,6 +284,9 @@ Add more tools, such as:
 
 ```bash
 PORT=8080
+HOST=127.0.0.1           # set 0.0.0.0 only to expose the server
+AUTH_TOKEN=              # shared token for chat, memory, and conversations
+ALLOWED_ORIGINS=         # extra browser origins, comma separated
 PYTHON_SERVICE_URL=http://127.0.0.1:8081
 USE_OLLAMA=auto          # auto, true, false
 OLLAMA_URL=http://localhost:11434
