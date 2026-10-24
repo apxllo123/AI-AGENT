@@ -41,6 +41,22 @@ Default web URL:
 http://localhost:8080
 ```
 
+## Security
+
+The server stores private memory and conversations, so it protects them from
+network clients:
+
+- It listens on `127.0.0.1` by default. Set `HOST=0.0.0.0` to expose it.
+- `POST /chat`, `GET /memory`, `POST /memory/clear`, and `GET /conversations`
+  require the shared `AUTH_TOKEN`. Send it as `Authorization: Bearer <token>` or
+  `X-Auth-Token: <token>`.
+- `GET /health` and the static web UI stay open.
+- Cross-origin browser reads are limited to `ALLOWED_ORIGINS`.
+
+If you expose the server off-host, set `AUTH_TOKEN` so those routes stay
+authenticated. The server prints a generated token on start when `AUTH_TOKEN` is
+not set.
+
 ## Run full app
 
 ```bash

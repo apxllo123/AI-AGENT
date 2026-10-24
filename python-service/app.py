@@ -302,6 +302,9 @@ def memory_clear():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8081"))
-    print(f"🚀 AI-AGENT Python service running on http://0.0.0.0:{port}")
+    # The Node server reaches this service at PYTHON_SERVICE_URL (loopback by
+    # default), so bind loopback unless HOST asks for another interface.
+    host = os.getenv("HOST", "127.0.0.1")
+    print(f"🚀 AI-AGENT Python service running on http://{host}:{port}")
     print(f"Tiny model status: {MODEL_STATUS}")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host=host, port=port, debug=False)
