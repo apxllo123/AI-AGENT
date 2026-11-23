@@ -2,11 +2,47 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 const fetch = require("node-fetch");
 
 const app = express();
-app.use(cors());
+
+// ── Access control ───────────────────────────────────────
+// The chat, memory, and conversation routes read and write the user's private
+// data, and README.md tells people to publish this port through a tunnel or on
+// a host. They require a shared token. The bundled UI is served from this same
+// origin, so it needs no cross-origin grant; only origins in ALLOWED_ORIGINS
+// get one.
+const configuredToken = (process.env.ACCESS_TOKEN || "").trim();
+const ACCESS_TOKEN = configuredToken || crypto.randomBytes(24).toString("hex");
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Same-origin and non-browser requests send no Origin header.
+      if (!origin) return callback(null, true);
+      return callback(null, ALLOWED_ORIGINS.includes(origin));
+    },
+  })
+);
 app.use(express.json({ limit: "1mb" }));
+
+function tokenMatches(provided) {
+  const left = Buffer.from(String(provided));
+  const right = Buffer.from(ACCESS_TOKEN);
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+function requireToken(req, res, next) {
+  const header = req.get("authorization") || "";
+  const bearer = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  if (tokenMatches(bearer || req.get("x-auth-token") || "")) return next();
+  return res.status(401).json({ error: "Access token required" });
+}
 
 // Serve frontend
 const sitePath = path.join(__dirname, "../my-site");
@@ -231,7 +267,7 @@ app.get("/health", async (req, res) => {
 
 app.get("/", (req, res) => res.sendFile(path.join(sitePath, "index.html")));
 
-app.post("/chat", async (req, res) => {
+app.post("/chat", requireToken, async (req, res) => {
   const { message, history = [] } = req.body || {};
   if (!message) return res.status(400).json({ error: "Message required" });
 
@@ -260,17 +296,27 @@ app.post("/chat", async (req, res) => {
   res.json({ reply, model: "fallback" });
 });
 
-app.get("/memory", (req, res) => res.json(memory));
+app.get("/memory", requireToken, (req, res) => res.json(memory));
 
-app.post("/memory/clear", (req, res) => {
+app.post("/memory/clear", requireToken, (req, res) => {
   memory = { userName: null, facts: {}, learned: [] };
   saveMemory();
   res.json({ status: "Memory cleared" });
 });
 
-app.get("/conversations", (req, res) => {
+app.get("/conversations", requireToken, (req, res) => {
   res.json({ count: conversations.length, recent: conversations.slice(-20) });
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, "0.0.0.0", () => console.log(`🤖 JARVIS online → http://0.0.0.0:${PORT}`));
+const HOST = process.env.HOST || "0.0.0.0";
+app.listen(PORT, HOST, () => {
+  console.log(`🤖 JARVIS online → http://${HOST}:${PORT}`);
+  if (configuredToken) {
+    console.log("Access token loaded from ACCESS_TOKEN.");
+  } else {
+    console.log(`No ACCESS_TOKEN set, so this run uses a temporary token: ${ACCESS_TOKEN}`);
+    console.log("Set ACCESS_TOKEN in .env to keep one token across restarts.");
+  }
+  console.log("The web page asks for this token once and keeps it in the browser.");
+});

@@ -6,9 +6,11 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "node server/server.js",
+    "check:js": "node --check server/server.js",
     "python-service": "python python-service/app.py",
     "train": "python train.py",
-    "train:quick": "python train.py --quick"
+    "train:quick": "python train.py --quick",
+    "test:server": "node --test tests/test_server_auth.js"
   },
   "dependencies": {
     "express": "^4.19.2",

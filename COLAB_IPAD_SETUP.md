@@ -47,7 +47,17 @@ python-service/artifacts/model.pt
 python-service/artifacts/bpe.pkl
 ```
 
-## 5. Create a public URL for the web app
+## 5. Set an access token, then create a public URL for the web app
+
+The app asks for a token before it shows your memory or conversations. Set your
+own token first, so it does not change when the runtime restarts:
+
+```bash
+!echo 'ACCESS_TOKEN=CHANGE_ME_TO_A_LONG_RANDOM_STRING' >> .env
+```
+
+Without this line the server makes a temporary token and prints it on start.
+Copy it from the Colab output and enter it once in Safari.
 
 Colab does not automatically give a public web URL. One simple option is ngrok:
 
