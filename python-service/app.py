@@ -34,8 +34,11 @@ sys.path.insert(0, str(BASE_DIR))
 sys.path.insert(0, str(ROOT_DIR))
 
 app = Flask(__name__)
-if CORS:
-    CORS(app)
+# The Node server is the only client of this service, and it reaches it on
+# loopback. Browser origins get a CORS grant only when ALLOWED_ORIGINS names them.
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+if CORS and ALLOWED_ORIGINS:
+    CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGINS}})
 
 # Environment configuration
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
@@ -302,6 +305,9 @@ def memory_clear():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8081"))
-    print(f"🚀 AI-AGENT Python service running on http://0.0.0.0:{port}")
+    # Keep the private memory routes off the network unless PYTHON_HOST names
+    # another interface on purpose.
+    host = os.getenv("PYTHON_HOST", "127.0.0.1")
+    print(f"🚀 AI-AGENT Python service running on http://{host}:{port}")
     print(f"Tiny model status: {MODEL_STATUS}")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host=host, port=port, debug=False)

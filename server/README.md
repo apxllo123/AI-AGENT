@@ -26,6 +26,24 @@ When a user sends a message, the server tries:
 3. Python service at `PYTHON_SERVICE_URL`,
 4. simple fallback response.
 
+## Access control
+
+`POST /chat`, `GET /memory`, `POST /memory/clear`, and `GET /conversations`
+read and change your private data, so each one needs a token:
+
+- Set `ACCESS_TOKEN` in `.env` to use your own token, or let the server make a
+  temporary one for each run.
+- The server prints the token on start. The web page asks for it once and keeps
+  it in the browser. API clients send `Authorization: Bearer <token>` or
+  `X-Auth-Token: <token>`.
+- `ALLOWED_ORIGINS` names the browser origins that may call the API from another
+  page. The bundled UI uses the same origin and needs no entry.
+- `HOST` sets the interface. `0.0.0.0` is the default. Use `127.0.0.1` to answer
+  local requests only.
+- `GET /` and `GET /health` stay open.
+
+Run the access control tests with `npm run test:server`.
+
 ## Run it
 
 From the repo root:

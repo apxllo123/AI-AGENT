@@ -97,6 +97,14 @@ Open:
 http://localhost:8080
 ```
 
+The server requires an access token for chat, memory, and conversation requests.
+It prints the token on start. Enter it in the page once, or set `ACCESS_TOKEN`
+in `.env` to use your own.
+
+> Do not publish port 8080 with a tunnel or on a host before you set `ACCESS_TOKEN`.
+> The temporary token changes on every restart. Set `ALLOWED_ORIGINS` when a page
+> on another origin must call the API.
+
 ---
 
 ## 📱 iPad 10th Gen / iPad-Only Setup
@@ -280,6 +288,9 @@ Add more tools, such as:
 
 ```bash
 PORT=8080
+HOST=0.0.0.0             # 127.0.0.1 to answer local requests only
+ACCESS_TOKEN=            # required for chat, memory, and conversation routes
+ALLOWED_ORIGINS=         # comma-separated browser origins allowed to call the API
 PYTHON_SERVICE_URL=http://127.0.0.1:8081
 USE_OLLAMA=auto          # auto, true, false
 OLLAMA_URL=http://localhost:11434
@@ -291,6 +302,8 @@ CODER_MODEL=qwen2.5-coder
 
 ```bash
 PORT=8081
+PYTHON_HOST=127.0.0.1     # the Node server is the only client
+ALLOWED_ORIGINS=
 USE_OLLAMA=auto
 OLLAMA_URL=http://localhost:11434
 OLLAMA_MODEL=qwen2.5-coder

@@ -96,11 +96,29 @@ function setStatus(text, online = true) {
 }
 
 // ── API helpers ──────────────────────────────────────────────
+let accessToken = localStorage.getItem('jarvis_token') || '';
+let askedForToken = false;
+
+function requestToken() {
+  if (askedForToken) return;
+  askedForToken = true;
+  const entered = window.prompt(
+    'Enter the JARVIS access token printed in the server console:'
+  );
+  if (entered && entered.trim()) {
+    localStorage.setItem('jarvis_token', entered.trim());
+    window.location.reload();
+  }
+}
+
 async function fetchJson(url, options = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeout || 120000);
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
+    const headers = { ...(options.headers || {}) };
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    const res = await fetch(url, { ...options, headers, signal: controller.signal });
+    if (res.status === 401) requestToken();
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } finally {
